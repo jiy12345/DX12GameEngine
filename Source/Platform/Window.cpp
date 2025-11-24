@@ -208,7 +208,7 @@ namespace DX12GameEngine
             HandleKeyboard(msg, wParam, lParam);
             return 0;
 
-        // 마우스 메시지는 다음 커밋에서 구현
+        // 마우스 메시지 처리
         case WM_MOUSEMOVE:
         case WM_LBUTTONDOWN:
         case WM_LBUTTONUP:
@@ -217,8 +217,8 @@ namespace DX12GameEngine
         case WM_MBUTTONDOWN:
         case WM_MBUTTONUP:
         case WM_MOUSEWHEEL:
-            // TODO: 마우스 처리 (다음 커밋)
-            break;
+            HandleMouse(msg, wParam, lParam);
+            return 0;
 
         // 리사이즈는 다음 커밋에서 구현
         case WM_SIZE:
@@ -248,7 +248,65 @@ namespace DX12GameEngine
 
     void Window::HandleMouse(UINT msg, WPARAM wParam, LPARAM lParam)
     {
-        // TODO: 다음 커밋에서 구현
+        if (!m_mouseCallback)
+        {
+            return;
+        }
+
+        MouseEvent event;
+
+        // 마우스 위치 추출 (클라이언트 좌표계)
+        event.x = static_cast<int>(static_cast<short>(LOWORD(lParam)));
+        event.y = static_cast<int>(static_cast<short>(HIWORD(lParam)));
+        event.wheelDelta = 0;
+
+        // 이벤트 타입 설정
+        switch (msg)
+        {
+        case WM_MOUSEMOVE:
+            event.type = MouseEvent::Type::Move;
+            break;
+
+        case WM_LBUTTONDOWN:
+            event.type = MouseEvent::Type::LeftButtonDown;
+            SetCapture(m_hwnd); // 마우스 캡처 (윈도우 밖에서도 이벤트 수신)
+            break;
+
+        case WM_LBUTTONUP:
+            event.type = MouseEvent::Type::LeftButtonUp;
+            ReleaseCapture();
+            break;
+
+        case WM_RBUTTONDOWN:
+            event.type = MouseEvent::Type::RightButtonDown;
+            SetCapture(m_hwnd);
+            break;
+
+        case WM_RBUTTONUP:
+            event.type = MouseEvent::Type::RightButtonUp;
+            ReleaseCapture();
+            break;
+
+        case WM_MBUTTONDOWN:
+            event.type = MouseEvent::Type::MiddleButtonDown;
+            SetCapture(m_hwnd);
+            break;
+
+        case WM_MBUTTONUP:
+            event.type = MouseEvent::Type::MiddleButtonUp;
+            ReleaseCapture();
+            break;
+
+        case WM_MOUSEWHEEL:
+            event.type = MouseEvent::Type::Wheel;
+            event.wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+            break;
+
+        default:
+            return;
+        }
+
+        m_mouseCallback(event);
     }
 
     void Window::HandleResize(int width, int height)
