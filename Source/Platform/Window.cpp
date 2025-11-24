@@ -40,7 +40,7 @@ namespace DX12GameEngine
         wc.hInstance = m_hInstance;
         wc.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
         wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-        wc.hbrBackground = nullptr; // DX12로 렌더링하므로 배경 불필요
+        wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH); // 검은색 배경
         wc.lpszMenuName = nullptr;
         wc.lpszClassName = m_className.c_str();
         wc.hIconSm = LoadIcon(nullptr, IDI_APPLICATION);
