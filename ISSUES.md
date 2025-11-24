@@ -5,15 +5,15 @@
 ## Phase 1: 프로젝트 Setup
 
 ### #1 - Visual Studio 솔루션 구성
-**Type**: Feature  
-**Priority**: High  
+**Type**: Feature
+**Priority**: High
 **Description**: Visual Studio 2022 솔루션 및 프로젝트 파일 생성
-- [ ] 솔루션 파일 생성
-- [ ] 엔진 코어 프로젝트
-- [ ] 샘플 애플리케이션 프로젝트
-- [ ] 벤치마크 프로젝트
-- [ ] 빌드 설정 (Debug/Release/Profile)
-- [ ] DirectX 12 SDK 링크 설정
+- [x] 솔루션 파일 생성 (CMake 기반)
+- [x] 엔진 코어 프로젝트
+- [x] 샘플 애플리케이션 프로젝트
+- [x] 벤치마크 프로젝트
+- [x] 빌드 설정 (Debug/Release/Profile)
+- [x] DirectX 12 SDK 링크 설정
 
 ---
 
