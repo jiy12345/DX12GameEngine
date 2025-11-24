@@ -220,10 +220,19 @@ namespace DX12GameEngine
             HandleMouse(msg, wParam, lParam);
             return 0;
 
-        // 리사이즈는 다음 커밋에서 구현
+        // 윈도우 리사이즈 처리
         case WM_SIZE:
-            // TODO: 리사이즈 처리 (다음 커밋)
-            break;
+        {
+            int newWidth = LOWORD(lParam);
+            int newHeight = HIWORD(lParam);
+
+            // 크기가 실제로 변경되었을 때만 처리
+            if (newWidth != m_width || newHeight != m_height)
+            {
+                HandleResize(newWidth, newHeight);
+            }
+            return 0;
+        }
         }
 
         return DefWindowProcW(m_hwnd, msg, wParam, lParam);
@@ -311,7 +320,20 @@ namespace DX12GameEngine
 
     void Window::HandleResize(int width, int height)
     {
-        // TODO: 다음 커밋에서 구현
+        // 최소화 시 0,0이 될 수 있음
+        if (width == 0 || height == 0)
+        {
+            return;
+        }
+
+        m_width = width;
+        m_height = height;
+
+        // 리사이즈 콜백 호출
+        if (m_resizeCallback)
+        {
+            m_resizeCallback(width, height);
+        }
     }
 
 } // namespace DX12GameEngine
