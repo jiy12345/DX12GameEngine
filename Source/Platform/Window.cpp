@@ -200,6 +200,27 @@ namespace DX12GameEngine
             m_isActive = (LOWORD(wParam) != WA_INACTIVE);
             return 0;
 
+        // 배경 지우기 (DX12 렌더링 전까지 검은색 유지)
+        case WM_ERASEBKGND:
+        {
+            HDC hdc = reinterpret_cast<HDC>(wParam);
+            RECT rect;
+            GetClientRect(m_hwnd, &rect);
+            FillRect(hdc, &rect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+            return 1; // 배경 지움 처리 완료
+        }
+
+        // 윈도우 다시 그리기
+        case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(m_hwnd, &ps);
+            // DX12 렌더링이 구현되면 여기서 Present 호출
+            // 현재는 배경만 표시
+            EndPaint(m_hwnd, &ps);
+            return 0;
+        }
+
         // 키보드 메시지 처리
         case WM_KEYDOWN:
         case WM_KEYUP:
