@@ -32,6 +32,9 @@ if(MSVC)
     # 멀티프로세서 컴파일
     add_compile_options(/MP)
 
+    # UTF-8 소스 코드 인코딩 (C4819 경고 해결)
+    add_compile_options(/utf-8)
+
     # Windows 매크로
     add_compile_definitions(
         WIN32_LEAN_AND_MEAN
