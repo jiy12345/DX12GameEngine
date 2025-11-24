@@ -200,13 +200,13 @@ namespace DX12GameEngine
             m_isActive = (LOWORD(wParam) != WA_INACTIVE);
             return 0;
 
-        // 키보드 메시지는 다음 커밋에서 구현
+        // 키보드 메시지 처리
         case WM_KEYDOWN:
         case WM_KEYUP:
         case WM_SYSKEYDOWN:
         case WM_SYSKEYUP:
-            // TODO: 키보드 처리 (다음 커밋)
-            break;
+            HandleKeyboard(msg, wParam, lParam);
+            return 0;
 
         // 마우스 메시지는 다음 커밋에서 구현
         case WM_MOUSEMOVE:
@@ -231,7 +231,19 @@ namespace DX12GameEngine
 
     void Window::HandleKeyboard(UINT msg, WPARAM wParam, LPARAM lParam)
     {
-        // TODO: 다음 커밋에서 구현
+        if (!m_keyboardCallback)
+        {
+            return;
+        }
+
+        KeyboardEvent event;
+        event.keyCode = wParam;
+        event.isPressed = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
+
+        // 비트 30: 이전 키 상태 (1이면 이미 눌려있던 키)
+        event.isRepeat = event.isPressed && ((lParam & 0x40000000) != 0);
+
+        m_keyboardCallback(event);
     }
 
     void Window::HandleMouse(UINT msg, WPARAM wParam, LPARAM lParam)
