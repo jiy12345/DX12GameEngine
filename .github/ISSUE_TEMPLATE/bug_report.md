@@ -9,10 +9,19 @@ assignees: ''
 ## 🐛 버그 설명
 버그에 대한 명확하고 간결한 설명을 작성해주세요.
 
+## 🌿 브랜치
+이슈 생성 후 다음 브랜치를 생성하세요:
+```bash
+git checkout main
+git pull origin main
+git checkout -b bugfix/이슈번호
+```
+예: `bugfix/12`, `bugfix/23`
+
 ## 🔄 재현 방법
 버그를 재현하는 단계:
-1. 
-2. 
+1.
+2.
 3. 
 
 ## 💭 예상 동작

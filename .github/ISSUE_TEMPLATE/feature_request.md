@@ -12,6 +12,15 @@ assignees: ''
 ## 🎯 목적
 이 기능이 왜 필요한지, 어떤 문제를 해결하는지 설명해주세요.
 
+## 🌿 브랜치
+이슈 생성 후 다음 브랜치를 생성하세요:
+```bash
+git checkout main
+git pull origin main
+git checkout -b feature/이슈번호
+```
+예: `feature/1`, `feature/5`
+
 ## 💡 제안하는 해결 방법
 기능을 어떻게 구현할지 구체적으로 설명해주세요.
 
