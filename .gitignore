@@ -39,6 +39,7 @@ bld/
 *.vspscc
 *.vssscc
 .builds
+Build/
 *.pidb
 *.svclog
 *.scc
@@ -77,3 +78,6 @@ Thumbs.db
 
 # Documentation generated files
 Docs/generated/
+
+# Claude Code personal guide
+CLAUDE.md
