@@ -211,9 +211,26 @@
 
 ## 문서화
 
+### #18 - 문서화 시스템 구축
+**Type**: Documentation
+**Priority**: High
+**Description**: 프로젝트 전체에 대한 체계적인 문서화 시스템 구축
+- [ ] Docs 디렉토리 구조 생성 (Structure/Concepts/Usage/Analysis)
+- [ ] 문서 템플릿 작성 (4가지 카테고리)
+- [ ] 문서 인덱스 작성 (Docs/README.md)
+- [ ] DX12 개념 문서 작성 (Device, CommandQueue, Descriptors 등)
+- [ ] 구조 문서 작성 (아키텍처, 렌더링 파이프라인 등)
+- [ ] 활용법 문서 작성 (윈도우 생성, DX12 초기화 등)
+- [ ] 기존 DX12_Core_Concepts.md를 새 구조로 마이그레이션
+- [ ] CLAUDE.md에 문서화 가이드라인 추가
+
+**목표**: 매 작업마다 관련 문서를 업데이트하여 지식 베이스 구축
+
+---
+
 ### #17 - API 문서 생성
-**Type**: Documentation  
-**Priority**: Low  
+**Type**: Documentation
+**Priority**: Low
 **Description**: 코드 문서 자동 생성
 - [ ] Doxygen 설정
 - [ ] 문서화 주석 추가
