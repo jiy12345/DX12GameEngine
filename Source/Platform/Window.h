@@ -68,10 +68,9 @@ namespace DX12GameEngine
     {
     public:
         /**
-         * @brief 생성자
-         * @param desc 윈도우 생성 파라미터
+         * @brief 기본 생성자
          */
-        explicit Window(const WindowDesc& desc);
+        Window();
 
         /**
          * @brief 소멸자
@@ -84,9 +83,10 @@ namespace DX12GameEngine
 
         /**
          * @brief 윈도우를 생성하고 표시합니다
+         * @param desc 윈도우 생성 파라미터
          * @return 성공 시 true
          */
-        bool Create();
+        bool Create(const WindowDesc& desc);
 
         /**
          * @brief 윈도우를 종료합니다

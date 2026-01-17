@@ -8,15 +8,14 @@
 
 namespace DX12GameEngine
 {
-    Window::Window(const WindowDesc& desc)
+    Window::Window()
         : m_hwnd(nullptr)
         , m_hInstance(GetModuleHandle(nullptr))
-        , m_title(desc.title)
         , m_className(L"DX12GameEngineWindowClass")
-        , m_width(desc.width)
-        , m_height(desc.height)
-        , m_isFullscreen(desc.fullscreen)
-        , m_isResizable(desc.resizable)
+        , m_width(0)
+        , m_height(0)
+        , m_isFullscreen(false)
+        , m_isResizable(true)
         , m_isActive(false)
         , m_keyboardCallback(nullptr)
         , m_mouseCallback(nullptr)
@@ -53,8 +52,15 @@ namespace DX12GameEngine
         return true;
     }
 
-    bool Window::Create()
+    bool Window::Create(const WindowDesc& desc)
     {
+        // WindowDesc로부터 설정 복사
+        m_title = desc.title;
+        m_width = desc.width;
+        m_height = desc.height;
+        m_isFullscreen = desc.fullscreen;
+        m_isResizable = desc.resizable;
+
         // 윈도우 클래스 등록
         if (!RegisterWindowClass())
         {
