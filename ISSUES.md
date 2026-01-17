@@ -31,6 +31,38 @@
 
 ## Phase 1: DX12 기본 렌더링
 
+### Core Systems
+
+### #23 - 로깅 시스템
+**Type**: Feature
+**Priority**: High
+**Description**: 제대로 된 로깅 시스템 구현 (OutputDebugStringW 대체)
+- [ ] Logger 클래스 설계
+- [ ] 로그 레벨 (Trace, Debug, Info, Warning, Error, Fatal)
+- [ ] 여러 출력 대상 (Console, File, DebugView)
+- [ ] 포맷팅 지원 (printf 스타일 또는 std::format)
+- [ ] 스레드 안전성
+- [ ] 빌드 구성별 필터링 (Debug는 모두, Release는 Warning 이상)
+- [ ] 매크로로 편리한 사용 (LOG_INFO, LOG_ERROR 등)
+
+**설계 고려사항**:
+- 성능: 비동기 로깅 (큐 기반)
+- 파일 로테이션: 로그 파일 크기 제한
+- 카테고리: [Engine], [Renderer], [Device] 등 태그
+- 타임스탬프 및 스레드 ID
+
+**사용 예시**:
+```cpp
+LOG_INFO("[Engine] Initializing...");
+LOG_ERROR("[Device] Failed to create: {}", error);
+```
+
+**우선순위**: #3 직후 구현 권장 - 이후 모든 시스템에서 활용
+
+---
+
+### DX12 Rendering Pipeline
+
 ### #3 - DX12 디바이스 초기화
 **Type**: Feature
 **Priority**: High
