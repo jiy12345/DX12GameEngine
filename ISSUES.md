@@ -32,16 +32,18 @@
 ## Phase 1: DX12 기본 렌더링
 
 ### #3 - DX12 디바이스 초기화
-**Type**: Feature  
-**Priority**: High  
+**Type**: Feature
+**Priority**: High
 **Description**: DirectX 12 디바이스 및 기본 인프라 초기화
-- [ ] Debug Layer 활성화 (Debug 빌드)
-- [ ] DXGI Factory 생성
-- [ ] 하드웨어 어댑터 선택
-- [ ] D3D12 Device 생성
-- [ ] Feature Level 확인
+- [x] Debug Layer 활성화 (Debug 빌드)
+- [x] DXGI Factory 생성
+- [x] 하드웨어 어댑터 선택
+- [x] D3D12 Device 생성
+- [x] Feature Level 확인
 
 **참고**: `Docs/DX12_Core_Concepts.md` 참조
+
+**완료**: Device 클래스 구현 완료. Engine/Renderer 아키텍처로 캡슐화됨.
 
 ---
 
@@ -139,7 +141,76 @@
 
 ---
 
-## Phase 2: 리소스 관리
+## Phase 1.5: ECS 아키텍처 구축
+
+**목표**: Phase 1에서 구현한 기본 렌더링을 ECS 아키텍처 위에서 확장 가능하도록 재구성
+
+**타이밍**: #10 삼각형 렌더링 완료 후 진행
+
+**전략**: 하이브리드 접근 - 성능이 중요한 부분(렌더링, 물리)만 ECS로 구현
+
+### #19 - ECS 아키텍처 설계
+**Type**: Architecture
+**Priority**: High
+**Description**: ECS 코어 아키텍처 설계 및 문서화
+- [ ] ECS 아키텍처 조사 (Unity DOTS, Unreal Mass, EnTT, Flecs)
+- [ ] 프로젝트에 맞는 ECS 설계 결정
+- [ ] Entity ID 관리 전략
+- [ ] Component 메모리 레이아웃 설계 (SoA vs AoS)
+- [ ] System 실행 순서 및 의존성 관리
+- [ ] `Docs/Structure/ECS_Architecture.md` 작성
+
+**설계 고려사항**:
+- 캐시 친화적 메모리 레이아웃
+- 멀티스레딩 지원 (나중에)
+- 쿼리 성능 최적화
+- 직렬화/역직렬화 (세이브/로드)
+
+---
+
+### #20 - ECS 코어 구현
+**Type**: Feature
+**Priority**: High
+**Description**: Entity, Component, System의 핵심 기능 구현
+- [ ] Entity Manager (생성/삭제/ID 관리)
+- [ ] Component Storage (Archetype 기반 또는 Sparse Set)
+- [ ] Component Registry (타입별 저장소)
+- [ ] Query System (컴포넌트 조합으로 엔티티 검색)
+- [ ] 기본 테스트 코드
+
+**참고 라이브러리**:
+- EnTT (C++ 헤더 온리, 성능 우수)
+- Flecs (기능 풍부)
+
+---
+
+### #21 - System 스케줄러
+**Type**: Feature
+**Priority**: Medium
+**Description**: System 실행 순서 및 스케줄링 관리
+- [ ] System 인터페이스 정의
+- [ ] System 등록 및 실행
+- [ ] System 실행 순서 정의
+- [ ] Before/After 의존성 지원
+- [ ] System 그룹 (예: RenderSystems, PhysicsSystems)
+
+---
+
+### #22 - 기존 렌더링을 ECS로 포팅
+**Type**: Refactoring
+**Priority**: High
+**Description**: #10에서 구현한 삼각형 렌더링을 ECS로 재구성
+- [ ] Transform Component (위치, 회전, 스케일)
+- [ ] MeshRenderer Component (메시 + 머티리얼)
+- [ ] RenderSystem (모든 MeshRenderer 쿼리 및 렌더링)
+- [ ] 기존 하드코딩된 삼각형을 Entity로 변환
+- [ ] 동일한 결과 확인 (삼각형 여전히 보여야 함)
+
+**마일스톤**: 삼각형이 Entity/Component로 렌더링됨
+
+---
+
+## Phase 2: 리소스 관리 (ECS 기반)
 
 ### #11 - 버퍼 관리 시스템
 **Type**: Feature  
