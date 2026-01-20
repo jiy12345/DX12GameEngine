@@ -5,6 +5,7 @@
 
 #include "Engine.h"
 #include <Graphics/Renderer.h>
+#include <Utils/Logger.h>
 
 namespace DX12GameEngine
 {
@@ -21,20 +22,26 @@ namespace DX12GameEngine
 
     bool Engine::Initialize(const EngineDesc& desc)
     {
+        // 0. 로거 초기화 (가장 먼저)
+        Logger::Get().Initialize(
+            BUILD_DEFAULT(MinLogLevel),
+            BUILD_DEFAULT(LogToFile)
+        );
+
         if (m_initialized)
         {
-            OutputDebugStringW(L"[Engine] Already initialized\n");
+            LOG_WARNING(LogCategory::Engine, L"Already initialized");
             return true;
         }
 
-        OutputDebugStringW(L"===========================================\n");
-        OutputDebugStringW(L"  DX12 Game Engine - Initializing...\n");
-        OutputDebugStringW(L"===========================================\n");
+        LOG_INFO(LogCategory::Engine, L"===========================================");
+        LOG_INFO(LogCategory::Engine, L"  DX12 Game Engine - Initializing...");
+        LOG_INFO(LogCategory::Engine, L"===========================================");
 
         // 1. 윈도우 생성
         if (!m_window.Create(desc.window))
         {
-            OutputDebugStringW(L"[Engine] Error: Failed to create window\n");
+            LOG_ERROR(LogCategory::Engine, L"Failed to create window");
             return false;
         }
 
@@ -45,16 +52,16 @@ namespace DX12GameEngine
         m_renderer = std::make_unique<Renderer>();
         if (!m_renderer->Initialize(m_window.GetHandle(), desc.window.width, desc.window.height, desc.renderer))
         {
-            OutputDebugStringW(L"[Engine] Error: Failed to initialize Renderer\n");
+            LOG_ERROR(LogCategory::Engine, L"Failed to initialize Renderer");
             return false;
         }
 
         m_initialized = true;
         m_running = true;
 
-        OutputDebugStringW(L"[Engine] Successfully initialized\n");
-        OutputDebugStringW(L"[Engine] Press ESC to exit\n");
-        OutputDebugStringW(L"===========================================\n\n");
+        LOG_INFO(LogCategory::Engine, L"Successfully initialized");
+        LOG_INFO(LogCategory::Engine, L"Press ESC to exit");
+        LOG_INFO(LogCategory::Engine, L"===========================================");
 
         return true;
     }
@@ -63,11 +70,11 @@ namespace DX12GameEngine
     {
         if (!m_initialized)
         {
-            OutputDebugStringW(L"[Engine] Error: Engine not initialized\n");
+            LOG_ERROR(LogCategory::Engine, L"Engine not initialized");
             return -1;
         }
 
-        OutputDebugStringW(L"[Engine] Starting game loop...\n");
+        LOG_INFO(LogCategory::Engine, L"Starting game loop...");
 
         // 게임 루프
         while (m_running)
@@ -89,7 +96,7 @@ namespace DX12GameEngine
             // m_audio->Update();
         }
 
-        OutputDebugStringW(L"[Engine] Game loop ended\n");
+        LOG_INFO(LogCategory::Engine, L"Game loop ended");
         return 0;
     }
 
@@ -100,7 +107,7 @@ namespace DX12GameEngine
             return;
         }
 
-        OutputDebugStringW(L"[Engine] Shutting down...\n");
+        LOG_INFO(LogCategory::Engine, L"Shutting down...");
 
         // 리소스 정리 (역순으로)
         m_renderer.reset();
@@ -108,7 +115,10 @@ namespace DX12GameEngine
         m_initialized = false;
         m_running = false;
 
-        OutputDebugStringW(L"[Engine] Shutdown complete\n");
+        LOG_INFO(LogCategory::Engine, L"Shutdown complete");
+
+        // 로거 종료 (가장 마지막)
+        Logger::Get().Shutdown();
     }
 
     void Engine::SetupWindowCallbacks()
@@ -137,7 +147,7 @@ namespace DX12GameEngine
         // ESC 키로 종료
         if (event.isPressed && event.keyCode == VK_ESCAPE)
         {
-            OutputDebugStringW(L"[Engine] ESC pressed, exiting...\n");
+            LOG_INFO(LogCategory::Engine, L"ESC pressed, exiting...");
             m_running = false;
         }
     }
