@@ -125,6 +125,8 @@ namespace DX12GameEngine
         // 로깅
         static constexpr bool EnableVerboseLogging = false;
         static constexpr bool LogFrameTime = true;              // 프레임 타임은 측정
+        static constexpr bool LogToFile = true;                 // 파일 로그 (성능 분석용)
+        static constexpr bool LogToConsole = false;             // 성능을 위해 끔
         static constexpr LogLevel MinLogLevel = LogLevel::Info; // Info 이상만 출력
 
         // 렌더링
