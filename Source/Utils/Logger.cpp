@@ -4,6 +4,7 @@
  */
 
 #include "Logger.h"
+#include <Core/BuildConfig.h>
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -11,6 +12,8 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include <filesystem>
+#include <iostream>
 
 namespace DX12GameEngine
 {
@@ -25,7 +28,7 @@ namespace DX12GameEngine
         Shutdown();
     }
 
-    void Logger::Initialize(LogLevel minLevel, bool logToFile, const std::wstring& logFilePath)
+    void Logger::Initialize(LogLevel minLevel, bool logToFile, const std::wstring& logFilePrefix)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -37,12 +40,44 @@ namespace DX12GameEngine
         m_minLevel = minLevel;
         m_logToFile = logToFile;
 
+        // 콘솔 로그 활성화 시 콘솔 창 할당
+        if constexpr (BUILD_DEFAULT(LogToConsole))
+        {
+            if (AllocConsole())
+            {
+                FILE* fp = nullptr;
+                freopen_s(&fp, "CONOUT$", "w", stdout);
+                freopen_s(&fp, "CONOUT$", "w", stderr);
+                std::wcout.clear();
+                std::wcerr.clear();
+            }
+        }
+
         if (logToFile)
         {
-            m_logFile.open(logFilePath, std::ios::out | std::ios::trunc);
+            // 실행 파일 경로에서 Build/Logs 폴더 경로 계산
+            wchar_t exePath[MAX_PATH];
+            GetModuleFileNameW(nullptr, exePath, MAX_PATH);
+
+            std::filesystem::path logsDir = std::filesystem::path(exePath).parent_path().parent_path().parent_path() / L"Logs";
+            std::filesystem::create_directories(logsDir);
+
+            // 타임스탬프 파일명 생성
+            auto now = std::chrono::system_clock::now();
+            auto time = std::chrono::system_clock::to_time_t(now);
+            std::tm localTime;
+            localtime_s(&localTime, &time);
+
+            std::wstringstream ss;
+            ss << std::put_time(&localTime, L"%Y-%m-%d_%H-%M-%S");
+            std::wstring timestamp = ss.str();
+
+            std::filesystem::path fullLogPath = logsDir / (logFilePrefix + L"_" + timestamp + L".log");
+
+            m_logFile.open(fullLogPath, std::ios::out | std::ios::trunc);
             if (!m_logFile.is_open())
             {
-                OutputDebugStringW(L"[Logger] Warning: Failed to open log file\n");
+                std::wcerr << L"[Logger] Warning: Failed to open log file\n";
                 m_logToFile = false;
             }
         }
@@ -78,8 +113,16 @@ namespace DX12GameEngine
 
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        // OutputDebugStringW 출력
-        OutputDebugStringW(formattedMessage.c_str());
+        // 콘솔 출력 (Debug 빌드)
+        if constexpr (BUILD_DEFAULT(LogToConsole))
+        {
+            std::wcout << formattedMessage;
+        }
+        else
+        {
+            // Release 빌드: IDE 디버그 출력 창
+            OutputDebugStringW(formattedMessage.c_str());
+        }
 
         // 파일 출력
         if (m_logToFile && m_logFile.is_open())

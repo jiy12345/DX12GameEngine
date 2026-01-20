@@ -62,9 +62,9 @@ namespace DX12GameEngine
          * @brief 로거 초기화
          * @param minLevel 최소 로그 레벨 (이 레벨 이상만 출력)
          * @param logToFile 파일 출력 활성화 여부
-         * @param logFilePath 로그 파일 경로 (기본값: "Engine.log")
+         * @param logFilePrefix 로그 파일 접두사 (기본값: "Engine", 실제 파일명: Engine_2026-01-20_22-30-15.log)
          */
-        void Initialize(LogLevel minLevel, bool logToFile = true, const std::wstring& logFilePath = L"Engine.log");
+        void Initialize(LogLevel minLevel, bool logToFile = true, const std::wstring& logFilePrefix = L"Engine");
 
         /**
          * @brief 로거 종료
