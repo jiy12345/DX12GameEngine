@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <Utils/Logger.h>
+
 namespace DX12GameEngine
 {
     /**
@@ -63,9 +65,7 @@ namespace DX12GameEngine
         static constexpr bool LogFrameTime = true;              // 프레임 타임 로그
         static constexpr bool LogToFile = true;                 // 파일 로그
         static constexpr bool LogToConsole = true;              // 콘솔 로그
-
-        // TODO: #23 로그 시스템 구현 시 사용
-        // LogLevel::Trace - 모든 로그 출력
+        static constexpr LogLevel MinLogLevel = LogLevel::Trace; // 모든 로그 출력
 
         // 렌더링
         static constexpr bool EnableVSync = true;               // VSync (프레임 안정성)
@@ -96,9 +96,7 @@ namespace DX12GameEngine
         static constexpr bool LogFrameTime = false;
         static constexpr bool LogToFile = true;                 // 파일 로그 (크래시 분석용)
         static constexpr bool LogToConsole = false;             // 성능을 위해 끔
-
-        // TODO: #23 로그 시스템 구현 시 사용
-        // LogLevel::Warning - Warning 이상만 출력
+        static constexpr LogLevel MinLogLevel = LogLevel::Warning; // Warning 이상만 출력
 
         // 렌더링
         static constexpr bool EnableVSync = true;               // 기본 VSync 켜기 (화면 찢김 방지)
@@ -127,6 +125,7 @@ namespace DX12GameEngine
         // 로깅
         static constexpr bool EnableVerboseLogging = false;
         static constexpr bool LogFrameTime = true;              // 프레임 타임은 측정
+        static constexpr LogLevel MinLogLevel = LogLevel::Info; // Info 이상만 출력
 
         // 렌더링
         static constexpr bool EnableVSync = false;              // 프로파일링 시 VSync 끔 (정확한 측정)
