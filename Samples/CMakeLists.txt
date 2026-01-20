@@ -15,9 +15,11 @@ target_link_libraries(BasicSample
 # IDE 폴더 설정
 set_target_properties(BasicSample PROPERTIES FOLDER "Samples")
 
-# Windows 서브시스템 설정 (콘솔 윈도우 없이 실행)
+# Windows 서브시스템 설정
+# Debug: 콘솔 서브시스템 (Rider Run 창에 로그 출력)
+# Release/Profile: GUI 서브시스템 (콘솔 없음)
 if(MSVC)
     set_target_properties(BasicSample PROPERTIES
-        WIN32_EXECUTABLE TRUE
+        WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>
     )
 endif()
