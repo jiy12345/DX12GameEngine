@@ -9,15 +9,6 @@ assignees: ''
 ## ⚡ 최적화 대상
 최적화가 필요한 부분을 명확하게 설명해주세요.
 
-## 🌿 브랜치
-이슈 생성 후 다음 브랜치를 생성하세요:
-```bash
-git checkout main
-git pull origin main
-git checkout -b optimize/이슈번호
-```
-예: `optimize/8`, `optimize/15`
-
 ## 📊 현재 성능
 - FPS/처리 시간:
 - GPU/CPU 사용률:
