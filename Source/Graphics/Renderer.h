@@ -14,6 +14,7 @@
 namespace DX12GameEngine
 {
     class Device;
+    class CommandQueue;
 
     /**
      * @brief 렌더러 설정
@@ -96,9 +97,9 @@ namespace DX12GameEngine
     private:
         // DX12 객체들 (완전히 캡슐화, 외부 노출 없음)
         std::unique_ptr<Device> m_device;
+        std::unique_ptr<CommandQueue> m_commandQueue;
 
-        // TODO: #4-10에서 추가
-        // std::unique_ptr<CommandQueue> m_commandQueue;
+        // TODO: #9-14에서 추가
         // std::unique_ptr<SwapChain> m_swapChain;
         // std::unique_ptr<DescriptorHeapManager> m_descriptorHeaps;
         // ...
