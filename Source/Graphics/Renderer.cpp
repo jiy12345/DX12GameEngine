@@ -8,6 +8,7 @@
 #include "CommandQueue.h"
 #include "CommandListManager.h"
 #include "SwapChain.h"
+#include "DescriptorHeapManager.h"
 #include <Utils/Logger.h>
 
 namespace DX12GameEngine
@@ -82,7 +83,14 @@ namespace DX12GameEngine
             return false;
         }
 
-        // TODO: #10 - DescriptorHeapManager 초기화
+        // DescriptorHeapManager 초기화
+        m_descriptorHeapManager = std::make_unique<DescriptorHeapManager>();
+        if (!m_descriptorHeapManager->Initialize(m_device->GetDevice()))
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to initialize DescriptorHeapManager");
+            return false;
+        }
+
         // TODO: #11 - RenderTargetView 초기화
         // TODO: #12 - Fence 동기화 시스템 (이미 CommandQueue에 포함)
 
