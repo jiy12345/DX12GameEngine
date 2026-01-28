@@ -91,6 +91,18 @@ namespace DX12GameEngine
         D3D12_COMMAND_LIST_TYPE GetType() const { return m_type; }
 
         /**
+         * @brief Fence 가져오기
+         * @return ID3D12Fence 포인터
+         */
+        ID3D12Fence* GetFence() const { return m_fence.Get(); }
+
+        /**
+         * @brief Fence 이벤트 핸들 가져오기
+         * @return Fence 이벤트 HANDLE
+         */
+        HANDLE GetFenceEvent() const { return m_fenceEvent; }
+
+        /**
          * @brief 커맨드 Allocator 생성
          * @param device D3D12 디바이스
          * @return 생성된 CommandAllocator (실패 시 nullptr)
