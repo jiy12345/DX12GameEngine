@@ -6,6 +6,7 @@
 #include "Renderer.h"
 #include "Device.h"
 #include "CommandQueue.h"
+#include "CommandListManager.h"
 #include <Utils/Logger.h>
 
 namespace DX12GameEngine
@@ -56,6 +57,14 @@ namespace DX12GameEngine
         m_commandQueue->WaitForFenceValue(fenceValue);
         LOG_INFO(LogCategory::Renderer, L"CommandQueue fence synchronization test passed (value: {})", fenceValue);
 
+        // CommandListManager 초기화
+        m_commandListManager = std::make_unique<CommandListManager>();
+        if (!m_commandListManager->Initialize(m_device->GetDevice(), D3D12_COMMAND_LIST_TYPE_DIRECT))
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to initialize CommandListManager");
+            return false;
+        }
+
         // TODO: #9 - SwapChain 초기화 (desc.vsync 사용)
         // TODO: #10 - DescriptorHeapManager 초기화
         // TODO: #11 - RenderTargetView 초기화
@@ -70,8 +79,12 @@ namespace DX12GameEngine
 
     void Renderer::BeginFrame()
     {
+        // CommandListManager 프레임 시작
+        m_commandListManager->BeginFrame(
+            m_commandQueue->GetFence(),
+            m_commandQueue->GetFenceEvent());
+
         // TODO: #13 - 프레임 시작 처리
-        // - 커맨드 리스트 리셋
         // - 렌더 타겟 설정
     }
 
@@ -87,7 +100,10 @@ namespace DX12GameEngine
         // TODO: #13 - 프레임 종료 처리
         // - 커맨드 리스트 제출
         // - Present 호출
-        // - Fence 신호
+
+        // Fence 시그널 및 CommandListManager 프레임 종료
+        uint64_t fenceValue = m_commandQueue->Signal();
+        m_commandListManager->EndFrame(fenceValue);
     }
 
     void Renderer::OnResize(int width, int height)
