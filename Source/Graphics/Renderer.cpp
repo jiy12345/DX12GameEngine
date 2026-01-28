@@ -7,6 +7,7 @@
 #include "Device.h"
 #include "CommandQueue.h"
 #include "CommandListManager.h"
+#include "SwapChain.h"
 #include <Utils/Logger.h>
 
 namespace DX12GameEngine
@@ -65,7 +66,22 @@ namespace DX12GameEngine
             return false;
         }
 
-        // TODO: #9 - SwapChain 초기화 (desc.vsync 사용)
+        // SwapChain 초기화
+        SwapChainDesc swapChainDesc;
+        swapChainDesc.hwnd = hwnd;
+        swapChainDesc.width = static_cast<uint32_t>(width);
+        swapChainDesc.height = static_cast<uint32_t>(height);
+        swapChainDesc.format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        swapChainDesc.vsync = desc.vsync;
+        swapChainDesc.allowTearing = !desc.vsync;  // VSync OFF일 때 Tearing 허용
+
+        m_swapChain = std::make_unique<SwapChain>();
+        if (!m_swapChain->Initialize(m_device->GetFactory(), m_commandQueue->GetQueue(), swapChainDesc))
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to initialize SwapChain");
+            return false;
+        }
+
         // TODO: #10 - DescriptorHeapManager 초기화
         // TODO: #11 - RenderTargetView 초기화
         // TODO: #12 - Fence 동기화 시스템 (이미 CommandQueue에 포함)
@@ -99,7 +115,9 @@ namespace DX12GameEngine
     {
         // TODO: #13 - 프레임 종료 처리
         // - 커맨드 리스트 제출
-        // - Present 호출
+
+        // Present
+        m_swapChain->Present();
 
         // Fence 시그널 및 CommandListManager 프레임 종료
         uint64_t fenceValue = m_commandQueue->Signal();
@@ -113,10 +131,21 @@ namespace DX12GameEngine
             return;
         }
 
+        if (width == m_width && height == m_height)
+        {
+            return;
+        }
+
+        // GPU 작업 완료 대기 (리사이즈 전 필수)
+        m_commandQueue->Flush();
+
         m_width = width;
         m_height = height;
 
-        // TODO: #9 - SwapChain 리사이즈 처리
+        // SwapChain 리사이즈
+        m_swapChain->Resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+
+        // TODO: #11 - RTV 재생성
 
         LOG_INFO(LogCategory::Renderer, L"Renderer resized ({}x{})", m_width, m_height);
     }

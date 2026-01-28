@@ -16,6 +16,7 @@ namespace DX12GameEngine
     class Device;
     class CommandQueue;
     class CommandListManager;
+    class SwapChain;
 
     /**
      * @brief 렌더러 설정
@@ -100,9 +101,9 @@ namespace DX12GameEngine
         std::unique_ptr<Device> m_device;
         std::unique_ptr<CommandQueue> m_commandQueue;
         std::unique_ptr<CommandListManager> m_commandListManager;
+        std::unique_ptr<SwapChain> m_swapChain;
 
-        // TODO: #9-14에서 추가
-        // std::unique_ptr<SwapChain> m_swapChain;
+        // TODO: #10-14에서 추가
         // std::unique_ptr<DescriptorHeapManager> m_descriptorHeaps;
         // ...
 
