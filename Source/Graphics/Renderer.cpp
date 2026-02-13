@@ -14,7 +14,8 @@
 namespace DX12GameEngine
 {
     Renderer::Renderer()
-        : m_initialized(false)
+        : m_commandList(nullptr)
+        , m_initialized(false)
         , m_width(0)
         , m_height(0)
     {
@@ -150,21 +151,66 @@ namespace DX12GameEngine
             m_commandQueue->GetFence(),
             m_commandQueue->GetFenceEvent());
 
-        // TODO: #13 - 프레임 시작 처리
-        // - 렌더 타겟 설정
+        // 커맨드 리스트 획득
+        m_commandList = m_commandListManager->GetCommandList();
+
+        // 백 버퍼 상태 전환: PRESENT → RENDER_TARGET
+        ID3D12Resource* backBuffer = m_swapChain->GetCurrentBackBuffer();
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = backBuffer;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        m_commandList->ResourceBarrier(1, &barrier);
+
+        // 뷰포트 설정
+        D3D12_VIEWPORT viewport = {};
+        viewport.Width = static_cast<float>(m_width);
+        viewport.Height = static_cast<float>(m_height);
+        viewport.MaxDepth = 1.0f;
+        m_commandList->RSSetViewports(1, &viewport);
+
+        // 시저 렉트 설정
+        D3D12_RECT scissorRect = { 0, 0, static_cast<LONG>(m_width), static_cast<LONG>(m_height) };
+        m_commandList->RSSetScissorRects(1, &scissorRect);
+
+        // 렌더 타겟 설정
+        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = GetCurrentRtvHandle();
+        m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
     }
 
     void Renderer::RenderFrame()
     {
-        // TODO: #13 - 실제 렌더링
-        // - 렌더 타겟 클리어
+        // 렌더 타겟 클리어 (Cornflower Blue)
+        const float clearColor[] = { 0.39f, 0.58f, 0.93f, 1.0f };
+        m_commandList->ClearRenderTargetView(GetCurrentRtvHandle(), clearColor, 0, nullptr);
+
         // TODO: #14 - 삼각형 렌더링
     }
 
     void Renderer::EndFrame()
     {
-        // TODO: #13 - 프레임 종료 처리
-        // - 커맨드 리스트 제출
+        // 백 버퍼 상태 전환: RENDER_TARGET → PRESENT
+        ID3D12Resource* backBuffer = m_swapChain->GetCurrentBackBuffer();
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = backBuffer;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        m_commandList->ResourceBarrier(1, &barrier);
+
+        // 커맨드 리스트 닫기
+        m_commandList->Close();
+
+        // 커맨드 리스트 실행
+        ID3D12CommandList* commandLists[] = { m_commandList };
+        m_commandQueue->ExecuteCommandLists(commandLists, 1);
+
+        // 커맨드 리스트 반환
+        m_commandListManager->ReturnCommandList(m_commandList);
+        m_commandList = nullptr;
 
         // Present
         m_swapChain->Present();

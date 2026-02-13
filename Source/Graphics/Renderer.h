@@ -126,6 +126,9 @@ namespace DX12GameEngine
         // RTV 핸들 (백 버퍼별)
         DescriptorHandle m_rtvHandles[kBackBufferCount];
 
+        // 현재 프레임의 커맨드 리스트 (BeginFrame에서 획득, EndFrame에서 반환)
+        ID3D12GraphicsCommandList* m_commandList;
+
         // 상태
         bool m_initialized;
         int m_width;
