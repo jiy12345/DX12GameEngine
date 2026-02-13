@@ -22,6 +22,7 @@ namespace DX12GameEngine
 
     Renderer::~Renderer()
     {
+        ReleaseRenderTargetViews();
         // unique_ptr이 자동으로 정리
     }
 
@@ -91,7 +92,12 @@ namespace DX12GameEngine
             return false;
         }
 
-        // TODO: #11 - RenderTargetView 초기화
+        // RenderTargetView 생성
+        if (!CreateRenderTargetViews())
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to create RenderTargetViews");
+            return false;
+        }
 
         m_initialized = true;
 
@@ -186,10 +192,14 @@ namespace DX12GameEngine
         m_width = width;
         m_height = height;
 
+        // RTV 해제 (SwapChain 리사이즈 전 백 버퍼 참조 제거)
+        ReleaseRenderTargetViews();
+
         // SwapChain 리사이즈
         m_swapChain->Resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-        // TODO: #11 - RTV 재생성
+        // RTV 재생성
+        CreateRenderTargetViews();
 
         LOG_INFO(LogCategory::Renderer, L"Renderer resized ({}x{})", m_width, m_height);
     }
