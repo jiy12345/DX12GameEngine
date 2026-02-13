@@ -22,6 +22,7 @@ namespace DX12GameEngine
 
     Renderer::~Renderer()
     {
+        ReleaseRenderTargetViews();
         // unique_ptr이 자동으로 정리
     }
 
@@ -91,14 +92,55 @@ namespace DX12GameEngine
             return false;
         }
 
-        // TODO: #11 - RenderTargetView 초기화
-        // TODO: #12 - Fence 동기화 시스템 (이미 CommandQueue에 포함)
+        // RenderTargetView 생성
+        if (!CreateRenderTargetViews())
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to create RenderTargetViews");
+            return false;
+        }
 
         m_initialized = true;
 
         LOG_INFO(LogCategory::Renderer, L"Renderer initialized ({}x{})", m_width, m_height);
 
         return true;
+    }
+
+    bool Renderer::CreateRenderTargetViews()
+    {
+        for (uint32_t i = 0; i < kBackBufferCount; ++i)
+        {
+            m_rtvHandles[i] = m_descriptorHeapManager->AllocateRtv();
+            if (!m_rtvHandles[i].IsValid())
+            {
+                LOG_ERROR(LogCategory::Renderer, L"Failed to allocate RTV descriptor for back buffer {}", i);
+                return false;
+            }
+
+            m_device->GetDevice()->CreateRenderTargetView(
+                m_swapChain->GetBackBuffer(i), nullptr, m_rtvHandles[i].cpuHandle);
+        }
+
+        LOG_INFO(LogCategory::Renderer, L"Created {} RenderTargetViews", kBackBufferCount);
+        return true;
+    }
+
+    void Renderer::ReleaseRenderTargetViews()
+    {
+        for (uint32_t i = 0; i < kBackBufferCount; ++i)
+        {
+            if (m_rtvHandles[i].IsValid())
+            {
+                m_descriptorHeapManager->FreeRtv(m_rtvHandles[i]);
+                m_rtvHandles[i] = DescriptorHandle();
+            }
+        }
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE Renderer::GetCurrentRtvHandle() const
+    {
+        uint32_t index = m_swapChain->GetCurrentBackBufferIndex();
+        return m_rtvHandles[index].cpuHandle;
     }
 
     void Renderer::BeginFrame()
@@ -150,10 +192,14 @@ namespace DX12GameEngine
         m_width = width;
         m_height = height;
 
+        // RTV 해제 (SwapChain 리사이즈 전 백 버퍼 참조 제거)
+        ReleaseRenderTargetViews();
+
         // SwapChain 리사이즈
         m_swapChain->Resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-        // TODO: #11 - RTV 재생성
+        // RTV 재생성
+        CreateRenderTargetViews();
 
         LOG_INFO(LogCategory::Renderer, L"Renderer resized ({}x{})", m_width, m_height);
     }
