@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "SwapChain.h"
+#include "DescriptorHeap.h"
 #include <Windows.h>
 #include <memory>
 
@@ -16,7 +18,6 @@ namespace DX12GameEngine
     class Device;
     class CommandQueue;
     class CommandListManager;
-    class SwapChain;
     class DescriptorHeapManager;
 
     /**
@@ -97,6 +98,12 @@ namespace DX12GameEngine
          */
         void OnResize(int width, int height);
 
+        /**
+         * @brief 현재 백 버퍼의 RTV 핸들 가져오기
+         * @return 현재 백 버퍼에 대한 CPU 디스크립터 핸들
+         */
+        D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentRtvHandle() const;
+
     private:
         // DX12 객체들 (완전히 캡슐화, 외부 노출 없음)
         std::unique_ptr<Device> m_device;
@@ -105,8 +112,19 @@ namespace DX12GameEngine
         std::unique_ptr<SwapChain> m_swapChain;
         std::unique_ptr<DescriptorHeapManager> m_descriptorHeapManager;
 
-        // TODO: #11-14에서 추가
-        // ...
+        /**
+         * @brief 백 버퍼에 대한 RTV 생성
+         * @return 성공 시 true
+         */
+        bool CreateRenderTargetViews();
+
+        /**
+         * @brief RTV 해제
+         */
+        void ReleaseRenderTargetViews();
+
+        // RTV 핸들 (백 버퍼별)
+        DescriptorHandle m_rtvHandles[kBackBufferCount];
 
         // 상태
         bool m_initialized;

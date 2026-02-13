@@ -92,13 +92,49 @@ namespace DX12GameEngine
         }
 
         // TODO: #11 - RenderTargetView 초기화
-        // TODO: #12 - Fence 동기화 시스템 (이미 CommandQueue에 포함)
 
         m_initialized = true;
 
         LOG_INFO(LogCategory::Renderer, L"Renderer initialized ({}x{})", m_width, m_height);
 
         return true;
+    }
+
+    bool Renderer::CreateRenderTargetViews()
+    {
+        for (uint32_t i = 0; i < kBackBufferCount; ++i)
+        {
+            m_rtvHandles[i] = m_descriptorHeapManager->AllocateRtv();
+            if (!m_rtvHandles[i].IsValid())
+            {
+                LOG_ERROR(LogCategory::Renderer, L"Failed to allocate RTV descriptor for back buffer {}", i);
+                return false;
+            }
+
+            m_device->GetDevice()->CreateRenderTargetView(
+                m_swapChain->GetBackBuffer(i), nullptr, m_rtvHandles[i].cpuHandle);
+        }
+
+        LOG_INFO(LogCategory::Renderer, L"Created {} RenderTargetViews", kBackBufferCount);
+        return true;
+    }
+
+    void Renderer::ReleaseRenderTargetViews()
+    {
+        for (uint32_t i = 0; i < kBackBufferCount; ++i)
+        {
+            if (m_rtvHandles[i].IsValid())
+            {
+                m_descriptorHeapManager->FreeRtv(m_rtvHandles[i]);
+                m_rtvHandles[i] = DescriptorHandle();
+            }
+        }
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE Renderer::GetCurrentRtvHandle() const
+    {
+        uint32_t index = m_swapChain->GetCurrentBackBufferIndex();
+        return m_rtvHandles[index].cpuHandle;
     }
 
     void Renderer::BeginFrame()
