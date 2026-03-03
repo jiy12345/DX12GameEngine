@@ -20,5 +20,7 @@ set_target_properties(BasicSample PROPERTIES FOLDER "Samples")
 if(MSVC)
     set_target_properties(BasicSample PROPERTIES
         WIN32_EXECUTABLE TRUE
+        # VS 디버거 작업 디렉터리를 프로젝트 루트로 설정 (셰이더 파일 경로용)
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     )
 endif()

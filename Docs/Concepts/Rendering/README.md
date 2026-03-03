@@ -4,12 +4,14 @@
 
 ## 📑 문서 목록
 
-- [RenderLoop.md](./RenderLoop.md) - 렌더링 루프 개념
-- [GraphicsPipeline.md](./GraphicsPipeline.md) - 그래픽스 파이프라인 단계
-- [VertexProcessing.md](./VertexProcessing.md) - 정점 처리
-- [Rasterization.md](./Rasterization.md) - 래스터화
-- [Shaders.md](./Shaders.md) - 셰이더 개념
-- [ResourceBinding.md](./ResourceBinding.md) - 리소스 바인딩
+| 문서 | 상태 | 내용 |
+|---|---|---|
+| [RenderLoop.md](./RenderLoop.md) | TODO | 렌더링 루프 개념 |
+| [GraphicsPipeline.md](./GraphicsPipeline.md) | ✅ #14 | PSO, Root Signature, 파이프라인 단계 |
+| [VertexProcessing.md](./VertexProcessing.md) | ✅ #14 | Vertex Buffer, Input Layout |
+| [Shaders.md](./Shaders.md) | ✅ #14 | HLSL 셰이더, 런타임 컴파일 |
+| [Rasterization.md](./Rasterization.md) | TODO | 래스터화 |
+| [ResourceBinding.md](./ResourceBinding.md) | TODO | 리소스 바인딩 |
 
 ## 학습 순서 권장
 
