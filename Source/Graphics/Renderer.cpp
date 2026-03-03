@@ -10,11 +10,13 @@
 #include "SwapChain.h"
 #include "DescriptorHeapManager.h"
 #include <Utils/Logger.h>
+#include <Core/BuildConfig.h>
 
 namespace DX12GameEngine
 {
     Renderer::Renderer()
-        : m_commandList(nullptr)
+        : m_vertexBufferView{}
+        , m_commandList(nullptr)
         , m_initialized(false)
         , m_width(0)
         , m_height(0)
@@ -97,6 +99,27 @@ namespace DX12GameEngine
         if (!CreateRenderTargetViews())
         {
             LOG_ERROR(LogCategory::Renderer, L"Failed to create RenderTargetViews");
+            return false;
+        }
+
+        // Root Signature 생성
+        if (!CreateRootSignature())
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to create Root Signature");
+            return false;
+        }
+
+        // Pipeline State Object 생성
+        if (!CreatePipelineState())
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to create Pipeline State Object");
+            return false;
+        }
+
+        // 삼각형 Vertex Buffer 생성
+        if (!CreateTriangleVertexBuffer())
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to create triangle Vertex Buffer");
             return false;
         }
 
@@ -186,7 +209,12 @@ namespace DX12GameEngine
         const float clearColor[] = { 0.39f, 0.58f, 0.93f, 1.0f };
         m_commandList->ClearRenderTargetView(GetCurrentRtvHandle(), clearColor, 0, nullptr);
 
-        // TODO: #14 - 삼각형 렌더링
+        // 삼각형 렌더링
+        m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+        m_commandList->SetPipelineState(m_pipelineState.Get());
+        m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        m_commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+        m_commandList->DrawInstanced(3, 1, 0, 0);
     }
 
     void Renderer::EndFrame()
@@ -248,5 +276,238 @@ namespace DX12GameEngine
         CreateRenderTargetViews();
 
         LOG_INFO(LogCategory::Renderer, L"Renderer resized ({}x{})", m_width, m_height);
+    }
+
+    ComPtr<ID3DBlob> Renderer::CompileShader(const std::wstring& filename,
+        const std::string& entryPoint, const std::string& target)
+    {
+        UINT compileFlags = 0;
+#if defined(_DEBUG) || defined(DEBUG)
+        compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+        ComPtr<ID3DBlob> shaderBlob;
+        ComPtr<ID3DBlob> errorBlob;
+        HRESULT hr = D3DCompileFromFile(
+            filename.c_str(),
+            nullptr,
+            D3D_COMPILE_STANDARD_FILE_INCLUDE,
+            entryPoint.c_str(),
+            target.c_str(),
+            compileFlags,
+            0,
+            &shaderBlob,
+            &errorBlob);
+
+        if (FAILED(hr))
+        {
+            if (errorBlob)
+            {
+                // 컴파일 에러 메시지 출력 (narrow string → wide string 변환)
+                const char* errorMsg = static_cast<const char*>(errorBlob->GetBufferPointer());
+                int len = MultiByteToWideChar(CP_ACP, 0, errorMsg, -1, nullptr, 0);
+                std::wstring wErrorMsg(len, L'\0');
+                MultiByteToWideChar(CP_ACP, 0, errorMsg, -1, wErrorMsg.data(), len);
+                LOG_ERROR(LogCategory::Shader, L"Shader compile error [{}]: {}", filename, wErrorMsg);
+            }
+            else
+            {
+                LOG_ERROR(LogCategory::Shader, L"Failed to compile shader [{}], HRESULT: {:#010x}",
+                    filename, static_cast<uint32_t>(hr));
+            }
+            return nullptr;
+        }
+
+        return shaderBlob;
+    }
+
+    bool Renderer::CreateRootSignature()
+    {
+        // 삼각형 렌더링에는 외부 리소스(CBV/SRV/UAV)가 필요 없으므로 빈 루트 시그니처 사용
+        D3D12_ROOT_SIGNATURE_DESC rootSigDesc = {};
+        rootSigDesc.NumParameters = 0;
+        rootSigDesc.pParameters = nullptr;
+        rootSigDesc.NumStaticSamplers = 0;
+        rootSigDesc.pStaticSamplers = nullptr;
+        rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+        ComPtr<ID3DBlob> serializedRootSig;
+        ComPtr<ID3DBlob> errorBlob;
+        HRESULT hr = D3D12SerializeRootSignature(
+            &rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1,
+            &serializedRootSig, &errorBlob);
+
+        if (FAILED(hr))
+        {
+            if (errorBlob)
+            {
+                const char* errorMsg = static_cast<const char*>(errorBlob->GetBufferPointer());
+                int len = MultiByteToWideChar(CP_ACP, 0, errorMsg, -1, nullptr, 0);
+                std::wstring wErrorMsg(len, L'\0');
+                MultiByteToWideChar(CP_ACP, 0, errorMsg, -1, wErrorMsg.data(), len);
+                LOG_ERROR(LogCategory::Renderer, L"Root Signature serialize error: {}", wErrorMsg);
+            }
+            return false;
+        }
+
+        hr = m_device->GetDevice()->CreateRootSignature(
+            0,
+            serializedRootSig->GetBufferPointer(),
+            serializedRootSig->GetBufferSize(),
+            IID_PPV_ARGS(&m_rootSignature));
+
+        if (FAILED(hr))
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to create Root Signature, HRESULT: {:#010x}",
+                static_cast<uint32_t>(hr));
+            return false;
+        }
+
+        LOG_INFO(LogCategory::Renderer, L"Root Signature created");
+        return true;
+    }
+
+    bool Renderer::CreatePipelineState()
+    {
+        // 셰이더 컴파일
+        ComPtr<ID3DBlob> vertexShader = CompileShader(L"Shaders/Triangle.hlsl", "VSMain", "vs_5_0");
+        ComPtr<ID3DBlob> pixelShader  = CompileShader(L"Shaders/Triangle.hlsl", "PSMain", "ps_5_0");
+        if (!vertexShader || !pixelShader)
+        {
+            return false;
+        }
+
+        // 입력 레이아웃 (VSInput: float3 POSITION + float4 COLOR)
+        D3D12_INPUT_ELEMENT_DESC inputLayout[] =
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        };
+
+        // 기본 블렌드 상태
+        D3D12_BLEND_DESC blendDesc = {};
+        blendDesc.AlphaToCoverageEnable = FALSE;
+        blendDesc.IndependentBlendEnable = FALSE;
+        blendDesc.RenderTarget[0].BlendEnable = FALSE;
+        blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+        // 기본 래스터라이저 상태
+        D3D12_RASTERIZER_DESC rasterizerDesc = {};
+        rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+        rasterizerDesc.CullMode = D3D12_CULL_MODE_BACK;
+        rasterizerDesc.FrontCounterClockwise = FALSE;
+        rasterizerDesc.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+        rasterizerDesc.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+        rasterizerDesc.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+        rasterizerDesc.DepthClipEnable = TRUE;
+        rasterizerDesc.MultisampleEnable = FALSE;
+        rasterizerDesc.AntialiasedLineEnable = FALSE;
+        rasterizerDesc.ForcedSampleCount = 0;
+        rasterizerDesc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+        // 뎁스 스텐실 비활성화 (Phase 1: 깊이 버퍼 없음)
+        D3D12_DEPTH_STENCIL_DESC depthStencilDesc = {};
+        depthStencilDesc.DepthEnable = FALSE;
+        depthStencilDesc.StencilEnable = FALSE;
+
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+        psoDesc.pRootSignature = m_rootSignature.Get();
+        psoDesc.VS = { vertexShader->GetBufferPointer(), vertexShader->GetBufferSize() };
+        psoDesc.PS = { pixelShader->GetBufferPointer(),  pixelShader->GetBufferSize() };
+        psoDesc.InputLayout = { inputLayout, _countof(inputLayout) };
+        psoDesc.BlendState = blendDesc;
+        psoDesc.RasterizerState = rasterizerDesc;
+        psoDesc.DepthStencilState = depthStencilDesc;
+        psoDesc.SampleMask = UINT_MAX;
+        psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        psoDesc.NumRenderTargets = 1;
+        psoDesc.RTVFormats[0] = m_swapChain->GetFormat();
+        psoDesc.SampleDesc.Count = 1;
+        psoDesc.SampleDesc.Quality = 0;
+
+        HRESULT hr = m_device->GetDevice()->CreateGraphicsPipelineState(
+            &psoDesc, IID_PPV_ARGS(&m_pipelineState));
+
+        if (FAILED(hr))
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to create PSO, HRESULT: {:#010x}",
+                static_cast<uint32_t>(hr));
+            return false;
+        }
+
+        LOG_INFO(LogCategory::Renderer, L"Pipeline State Object created");
+        return true;
+    }
+
+    bool Renderer::CreateTriangleVertexBuffer()
+    {
+        // 정점 구조체 (Triangle.hlsl의 VSInput과 일치)
+        struct Vertex
+        {
+            float position[3];
+            float color[4];
+        };
+
+        // NDC 공간 삼각형 정점 (위쪽 빨강, 왼쪽 아래 초록, 오른쪽 아래 파랑)
+        Vertex vertices[] =
+        {
+            {  0.0f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f, 1.0f },
+            {  0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f, 1.0f },
+            { -0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f, 1.0f },
+        };
+
+        const UINT bufferSize = sizeof(vertices);
+
+        // CPU에서 쓰고 GPU에서 읽는 UPLOAD 힙 사용 (정적 지오메트리지만 Phase 1은 단순화)
+        D3D12_HEAP_PROPERTIES heapProps = {};
+        heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+        D3D12_RESOURCE_DESC bufferDesc = {};
+        bufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        bufferDesc.Alignment = 0;
+        bufferDesc.Width = bufferSize;
+        bufferDesc.Height = 1;
+        bufferDesc.DepthOrArraySize = 1;
+        bufferDesc.MipLevels = 1;
+        bufferDesc.Format = DXGI_FORMAT_UNKNOWN;
+        bufferDesc.SampleDesc.Count = 1;
+        bufferDesc.SampleDesc.Quality = 0;
+        bufferDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        bufferDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+        HRESULT hr = m_device->GetDevice()->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &bufferDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr,
+            IID_PPV_ARGS(&m_vertexBuffer));
+
+        if (FAILED(hr))
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to create Vertex Buffer, HRESULT: {:#010x}",
+                static_cast<uint32_t>(hr));
+            return false;
+        }
+
+        // CPU에서 정점 데이터 복사
+        void* mappedData = nullptr;
+        D3D12_RANGE readRange = { 0, 0 };  // 읽기 없음
+        hr = m_vertexBuffer->Map(0, &readRange, &mappedData);
+        if (FAILED(hr))
+        {
+            LOG_ERROR(LogCategory::Renderer, L"Failed to map Vertex Buffer");
+            return false;
+        }
+        memcpy(mappedData, vertices, bufferSize);
+        m_vertexBuffer->Unmap(0, nullptr);
+
+        // Vertex Buffer View 설정
+        m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+        m_vertexBufferView.SizeInBytes = bufferSize;
+        m_vertexBufferView.StrideInBytes = sizeof(Vertex);
+
+        LOG_INFO(LogCategory::Renderer, L"Triangle Vertex Buffer created ({} bytes)", bufferSize);
+        return true;
     }
 }

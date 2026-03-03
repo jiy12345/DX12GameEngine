@@ -11,7 +11,9 @@
 #include "SwapChain.h"
 #include "DescriptorHeap.h"
 #include <Windows.h>
+#include <d3dcompiler.h>
 #include <memory>
+#include <string>
 
 namespace DX12GameEngine
 {
@@ -123,8 +125,44 @@ namespace DX12GameEngine
          */
         void ReleaseRenderTargetViews();
 
+        /**
+         * @brief HLSL 셰이더 컴파일
+         * @param filename 셰이더 파일 경로
+         * @param entryPoint 진입점 함수명
+         * @param target 셰이더 모델 (예: "vs_5_0", "ps_5_0")
+         * @return 컴파일된 셰이더 Blob (실패 시 nullptr)
+         */
+        ComPtr<ID3DBlob> CompileShader(const std::wstring& filename,
+            const std::string& entryPoint, const std::string& target);
+
+        /**
+         * @brief Root Signature 생성
+         * @return 성공 시 true
+         */
+        bool CreateRootSignature();
+
+        /**
+         * @brief Pipeline State Object 생성
+         * @return 성공 시 true
+         */
+        bool CreatePipelineState();
+
+        /**
+         * @brief 삼각형 Vertex Buffer 생성
+         * @return 성공 시 true
+         */
+        bool CreateTriangleVertexBuffer();
+
         // RTV 핸들 (백 버퍼별)
         DescriptorHandle m_rtvHandles[kBackBufferCount];
+
+        // 파이프라인 객체
+        ComPtr<ID3D12RootSignature> m_rootSignature;
+        ComPtr<ID3D12PipelineState> m_pipelineState;
+
+        // Vertex Buffer
+        ComPtr<ID3D12Resource> m_vertexBuffer;
+        D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 
         // 현재 프레임의 커맨드 리스트 (BeginFrame에서 획득, EndFrame에서 반환)
         ID3D12GraphicsCommandList* m_commandList;
