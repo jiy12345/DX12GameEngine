@@ -20,7 +20,8 @@
 - ResourceBarriers.md - 리소스 배리어와 상태 전환 **(미작성)**
 - Synchronization.md - 동기화 (Fence) 개념 **(미작성)**
 - [SwapChain.md](./DX12/SwapChain.md) - 스왑체인 개념
-- MemoryHeaps.md - 메모리 힙 타입 **(미작성)**
+- [MemoryHeaps.md](./DX12/MemoryHeaps.md) - 메모리 힙 타입 (UPLOAD/DEFAULT/READBACK)
+- [ConstantBuffer.md](./DX12/ConstantBuffer.md) - 상수 버퍼 (#20)
 
 ### Rendering/ - 렌더링 개념
 - [README.md](./Rendering/README.md) - 렌더링 개념 인덱스

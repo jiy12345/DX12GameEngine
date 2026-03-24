@@ -16,7 +16,8 @@ DirectX 12의 핵심 개념들을 다룹니다.
 - ResourceBarriers.md - 리소스 배리어와 상태 전환 **(미작성)**
 - Synchronization.md - 동기화 (Fence) 개념 **(미작성)**
 - [SwapChain.md](./SwapChain.md) - 스왑체인 개념
-- MemoryHeaps.md - 메모리 힙 타입 **(미작성)**
+- [MemoryHeaps.md](./MemoryHeaps.md) - 메모리 힙 타입 (UPLOAD/DEFAULT/READBACK)
+- [ConstantBuffer.md](./ConstantBuffer.md) - 상수 버퍼 (#20)
 
 ## 학습 순서 권장
 
