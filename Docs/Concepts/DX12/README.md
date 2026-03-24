@@ -6,6 +6,7 @@ DirectX 12의 핵심 개념들을 다룹니다.
 
 - Overview.md - DX12 전체 개요 (DX11과의 차이) **(미작성)**
 - Device.md - 디바이스 개념 **(미작성)**
+- [DebugLayer.md](./DebugLayer.md) - Debug Layer 개념 ([#7](https://github.com/jiy12345/DX12GameEngine/issues/7))
 - [CommandQueue.md](./CommandQueue.md) - 커맨드 큐 개념 ([#8](https://github.com/jiy12345/DX12GameEngine/issues/8))
 - [CommandList.md](./CommandList.md) - 커맨드 리스트 개념 ([#8](https://github.com/jiy12345/DX12GameEngine/issues/8))
 - [CommandAllocator.md](./CommandAllocator.md) - 커맨드 할당자 개념 ([#8](https://github.com/jiy12345/DX12GameEngine/issues/8))
