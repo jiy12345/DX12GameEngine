@@ -7,21 +7,21 @@
 ## 📑 문서 목록
 
 ### 시작하기
-- [GettingStarted.md](./GettingStarted.md) - 프로젝트 시작하기
-- [BuildSystem.md](./BuildSystem.md) - 빌드 시스템 사용법
-- [Troubleshooting.md](./Troubleshooting.md) - 문제 해결 가이드
+- GettingStarted.md - 프로젝트 시작하기 **(미작성)**
+- BuildSystem.md - 빌드 시스템 사용법 **(미작성)**
+- Troubleshooting.md - 문제 해결 가이드 **(미작성)**
 
 ### BasicTasks/ - 기본 작업
-- [CreatingWindow.md](./BasicTasks/CreatingWindow.md) - 윈도우 생성하기
-- [InitializingDevice.md](./BasicTasks/InitializingDevice.md) - 디바이스 초기화하기
-- [CreatingSwapChain.md](./BasicTasks/CreatingSwapChain.md) - 스왑체인 생성하기
-- [ManagingDescriptors.md](./BasicTasks/ManagingDescriptors.md) - 디스크립터 관리하기
-- [RenderingTriangle.md](./BasicTasks/RenderingTriangle.md) - 첫 삼각형 렌더링하기
+- CreatingWindow.md - 윈도우 생성하기 **(미작성)**
+- InitializingDevice.md - 디바이스 초기화하기 **(미작성)**
+- CreatingSwapChain.md - 스왑체인 생성하기 **(미작성)**
+- ManagingDescriptors.md - 디스크립터 관리하기 **(미작성)**
+- RenderingTriangle.md - 첫 삼각형 렌더링하기 **(미작성)**
 
 ### AdvancedTasks/ - 고급 작업
-- [ResourceManagement.md](./AdvancedTasks/ResourceManagement.md) - 리소스 관리
-- [MultithreadedRendering.md](./AdvancedTasks/MultithreadedRendering.md) - 멀티스레드 렌더링
-- [OptimizingPSO.md](./AdvancedTasks/OptimizingPSO.md) - PSO 최적화
+- ResourceManagement.md - 리소스 관리 **(미작성)**
+- MultithreadedRendering.md - 멀티스레드 렌더링 **(미작성)**
+- OptimizingPSO.md - PSO 최적화 **(미작성)**
 
 ## 🔗 다른 카테고리와의 관계
 

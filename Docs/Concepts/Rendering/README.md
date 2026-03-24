@@ -6,12 +6,13 @@
 
 | 문서 | 상태 | 내용 |
 |---|---|---|
-| [RenderLoop.md](./RenderLoop.md) | TODO | 렌더링 루프 개념 |
+| RenderLoop.md | 미작성 | 렌더링 루프 개념 |
 | [GraphicsPipeline.md](./GraphicsPipeline.md) | ✅ #14 | PSO, Root Signature, 파이프라인 단계 |
 | [VertexProcessing.md](./VertexProcessing.md) | ✅ #14 | Vertex Buffer, Input Layout |
 | [Shaders.md](./Shaders.md) | ✅ #14 | HLSL 셰이더, 런타임 컴파일 |
-| [Rasterization.md](./Rasterization.md) | TODO | 래스터화 |
-| [ResourceBinding.md](./ResourceBinding.md) | TODO | 리소스 바인딩 |
+| [WaterSimulation.md](./WaterSimulation.md) | ✅ #38 | Gerstner Wave 기반 물 시뮬레이션 |
+| Rasterization.md | 미작성 | 래스터화 |
+| ResourceBinding.md | 미작성 | 리소스 바인딩 |
 
 ## 학습 순서 권장
 

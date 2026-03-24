@@ -7,24 +7,24 @@
 ## 📑 문서 목록
 
 ### Performance/ - 성능 분석
-- [BenchmarkStrategy.md](./Performance/BenchmarkStrategy.md) - 벤치마크 전략
-- [ProfilingTools.md](./Performance/ProfilingTools.md) - 프로파일링 도구
-- [GPUTiming.md](./Performance/GPUTiming.md) - GPU 타이밍 측정
+- BenchmarkStrategy.md - 벤치마크 전략 **(미작성)**
+- ProfilingTools.md - 프로파일링 도구 **(미작성)**
+- GPUTiming.md - GPU 타이밍 측정 **(미작성)**
 - [Results/](./Performance/Results/) - 벤치마크 결과들
 
 ### Testing/ - 테스트
-- [TestStrategy.md](./Testing/TestStrategy.md) - 테스트 전략
-- [UnitTests.md](./Testing/UnitTests.md) - 유닛 테스트
-- [IntegrationTests.md](./Testing/IntegrationTests.md) - 통합 테스트
+- TestStrategy.md - 테스트 전략 **(미작성)**
+- UnitTests.md - 유닛 테스트 **(미작성)**
+- IntegrationTests.md - 통합 테스트 **(미작성)**
 
 ### Debugging/ - 디버깅
-- [DebuggingGuide.md](./Debugging/DebuggingGuide.md) - 디버깅 가이드
-- [DebugLayer.md](./Debugging/DebugLayer.md) - DX12 Debug Layer 활용
-- [PIXUsage.md](./Debugging/PIXUsage.md) - PIX 사용법
-- [CommonIssues.md](./Debugging/CommonIssues.md) - 흔한 문제들
+- DebuggingGuide.md - 디버깅 가이드 **(미작성)**
+- DebugLayer.md - DX12 Debug Layer 활용 **(미작성)**
+- PIXUsage.md - PIX 사용법 **(미작성)**
+- CommonIssues.md - 흔한 문제들 **(미작성)**
 
 ### Research/ - 연구 노트
-- [ExperimentNotes.md](./Research/ExperimentNotes.md) - 실험 및 삽질 기록
+- ExperimentNotes.md - 실험 및 삽질 기록 **(미작성)**
 
 ## 🔗 다른 카테고리와의 관계
 

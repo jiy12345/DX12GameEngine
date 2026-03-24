@@ -48,18 +48,18 @@ DX12 게임 엔진의 전체 문서 허브입니다.
 ## 🎓 학습 경로
 
 ### 입문자
-1. [프로젝트 시작하기](./Usage/GettingStarted.md)
-2. [DX12 개요](./Concepts/DX12/Overview.md)
-3. [윈도우 생성하기](./Usage/BasicTasks/CreatingWindow.md)
+1. Usage/GettingStarted.md **(미작성)**
+2. Concepts/DX12/Overview.md **(미작성)**
+3. Usage/BasicTasks/CreatingWindow.md **(미작성)**
 
 ### 개발자
-1. [전체 아키텍처](./Structure/Overview.md)
+1. Structure/Overview.md **(미작성)**
 2. [DX12 개념들](./Concepts/DX12/)
-3. [구현 가이드](./Usage/BasicTasks/)
+3. Usage/BasicTasks/ **(미작성)**
 
 ### 최적화 담당자
-1. [렌더링 파이프라인 구조](./Structure/Graphics/RenderingPipeline.md)
-2. [벤치마크 전략](./Analysis/Performance/BenchmarkStrategy.md)
+1. Structure/Graphics/RenderingPipeline.md **(미작성)**
+2. Analysis/Performance/BenchmarkStrategy.md **(미작성)**
 3. [성능 분석 결과](./Analysis/Performance/Results/)
 
 ---

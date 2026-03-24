@@ -129,8 +129,8 @@ commandList->DrawInstanced(vertexCount, instanceCount, startVertex, startInstanc
 - [정점 처리](./VertexProcessing.md)
 
 ### 연관 개념
-- [리소스 바인딩](./ResourceBinding.md)
-- [래스터화](./Rasterization.md)
+- ResourceBinding.md **(미작성)**
+- Rasterization.md **(미작성)**
 
 ## 참고 자료
 - [Microsoft: Introduction to a pipeline state in Direct3D 12](https://learn.microsoft.com/en-us/windows/win32/direct3d12/managing-graphics-pipeline-state-in-direct3d-12)
