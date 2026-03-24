@@ -4,9 +4,9 @@
 
 ## 📑 문서 목록
 
-- [WindowSystem.md](./WindowSystem.md) - 윈도우 시스템 개념
-- [MessageLoop.md](./MessageLoop.md) - 메시지 루프 개념
-- [InputHandling.md](./InputHandling.md) - 입력 처리 개념
+- [WindowSystem.md](./WindowSystem.md) - 윈도우 시스템 개념 ([#6](https://github.com/jiy12345/DX12GameEngine/issues/6))
+- [MessageLoop.md](./MessageLoop.md) - 메시지 루프 개념 ([#6](https://github.com/jiy12345/DX12GameEngine/issues/6))
+- [InputHandling.md](./InputHandling.md) - 입력 처리 개념 ([#6](https://github.com/jiy12345/DX12GameEngine/issues/6))
 
 ## 학습 순서 권장
 

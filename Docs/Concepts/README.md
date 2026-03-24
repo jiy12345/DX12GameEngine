@@ -10,33 +10,34 @@
 - [README.md](./DX12/README.md) - DX12 개념 인덱스
 - Overview.md - DX12 전체 개요 (DX11과의 차이) **(미작성)**
 - Device.md - 디바이스 개념 **(미작성)**
-- [CommandQueue.md](./DX12/CommandQueue.md) - 커맨드 큐 개념
-- [CommandList.md](./DX12/CommandList.md) - 커맨드 리스트 개념
-- [CommandAllocator.md](./DX12/CommandAllocator.md) - 커맨드 할당자 개념
-- DescriptorHeaps.md - 디스크립터 힙 개념 **(미작성)**
+- [CommandQueue.md](./DX12/CommandQueue.md) - 커맨드 큐 개념 ([#8](https://github.com/jiy12345/DX12GameEngine/issues/8))
+- [CommandList.md](./DX12/CommandList.md) - 커맨드 리스트 개념 ([#8](https://github.com/jiy12345/DX12GameEngine/issues/8))
+- [CommandAllocator.md](./DX12/CommandAllocator.md) - 커맨드 할당자 개념 ([#8](https://github.com/jiy12345/DX12GameEngine/issues/8))
+- DescriptorHeaps.md - 디스크립터 힙 개념 **(미작성)** ([#10](https://github.com/jiy12345/DX12GameEngine/issues/10))
 - Descriptors.md - 디스크립터 타입 (RTV/DSV/CBV/SRV/UAV) **(미작성)**
-- PipelineStateObject.md - PSO 개념 **(미작성)**
-- RootSignature.md - 루트 시그니처 개념 **(미작성)**
-- ResourceBarriers.md - 리소스 배리어와 상태 전환 **(미작성)**
-- Synchronization.md - 동기화 (Fence) 개념 **(미작성)**
-- [SwapChain.md](./DX12/SwapChain.md) - 스왑체인 개념
-- [MemoryHeaps.md](./DX12/MemoryHeaps.md) - 메모리 힙 타입 (UPLOAD/DEFAULT/READBACK)
-- [ConstantBuffer.md](./DX12/ConstantBuffer.md) - 상수 버퍼 (#20)
+- PipelineStateObject.md - PSO 개념 **(미작성)** ([#14](https://github.com/jiy12345/DX12GameEngine/issues/14))
+- RootSignature.md - 루트 시그니처 개념 **(미작성)** ([#14](https://github.com/jiy12345/DX12GameEngine/issues/14))
+- ResourceBarriers.md - 리소스 배리어와 상태 전환 **(미작성)** ([#21](https://github.com/jiy12345/DX12GameEngine/issues/21))
+- Synchronization.md - 동기화 (Fence) 개념 **(미작성)** ([#12](https://github.com/jiy12345/DX12GameEngine/issues/12))
+- [SwapChain.md](./DX12/SwapChain.md) - 스왑체인 개념 ([#9](https://github.com/jiy12345/DX12GameEngine/issues/9))
+- [MemoryHeaps.md](./DX12/MemoryHeaps.md) - 메모리 힙 타입 (UPLOAD/DEFAULT/READBACK) ([#20](https://github.com/jiy12345/DX12GameEngine/issues/20))
+- [ConstantBuffer.md](./DX12/ConstantBuffer.md) - 상수 버퍼 ([#20](https://github.com/jiy12345/DX12GameEngine/issues/20))
 
 ### Rendering/ - 렌더링 개념
 - [README.md](./Rendering/README.md) - 렌더링 개념 인덱스
-- RenderLoop.md - 렌더링 루프 개념 **(미작성)**
-- [GraphicsPipeline.md](./Rendering/GraphicsPipeline.md) - 그래픽스 파이프라인 단계
-- [VertexProcessing.md](./Rendering/VertexProcessing.md) - 정점 처리
+- RenderLoop.md - 렌더링 루프 개념 **(미작성)** ([#13](https://github.com/jiy12345/DX12GameEngine/issues/13))
+- [GraphicsPipeline.md](./Rendering/GraphicsPipeline.md) - 그래픽스 파이프라인 단계 ([#14](https://github.com/jiy12345/DX12GameEngine/issues/14))
+- [VertexProcessing.md](./Rendering/VertexProcessing.md) - 정점 처리 ([#14](https://github.com/jiy12345/DX12GameEngine/issues/14))
 - Rasterization.md - 래스터화 **(미작성)**
-- [Shaders.md](./Rendering/Shaders.md) - 셰이더 개념
+- [Shaders.md](./Rendering/Shaders.md) - 셰이더 개념 ([#14](https://github.com/jiy12345/DX12GameEngine/issues/14))
 - ResourceBinding.md - 리소스 바인딩 **(미작성)**
+- [WaterSimulation.md](./Rendering/WaterSimulation.md) - 물 시뮬레이션 개념 ([#41](https://github.com/jiy12345/DX12GameEngine/issues/41))
 
 ### Platform/ - 플랫폼 개념
 - [README.md](./Platform/README.md) - 플랫폼 개념 인덱스
-- [WindowSystem.md](./Platform/WindowSystem.md) - 윈도우 시스템 개념
-- [MessageLoop.md](./Platform/MessageLoop.md) - 메시지 루프 개념
-- [InputHandling.md](./Platform/InputHandling.md) - 입력 처리 개념
+- [WindowSystem.md](./Platform/WindowSystem.md) - 윈도우 시스템 개념 ([#6](https://github.com/jiy12345/DX12GameEngine/issues/6))
+- [MessageLoop.md](./Platform/MessageLoop.md) - 메시지 루프 개념 ([#6](https://github.com/jiy12345/DX12GameEngine/issues/6))
+- [InputHandling.md](./Platform/InputHandling.md) - 입력 처리 개념 ([#6](https://github.com/jiy12345/DX12GameEngine/issues/6))
 
 ## 🔗 다른 카테고리와의 관계
 

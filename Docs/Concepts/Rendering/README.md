@@ -7,10 +7,10 @@
 | 문서 | 상태 | 내용 |
 |---|---|---|
 | RenderLoop.md | 미작성 | 렌더링 루프 개념 |
-| [GraphicsPipeline.md](./GraphicsPipeline.md) | ✅ #14 | PSO, Root Signature, 파이프라인 단계 |
-| [VertexProcessing.md](./VertexProcessing.md) | ✅ #14 | Vertex Buffer, Input Layout |
-| [Shaders.md](./Shaders.md) | ✅ #14 | HLSL 셰이더, 런타임 컴파일 |
-| [WaterSimulation.md](./WaterSimulation.md) | ✅ #38 | Gerstner Wave 기반 물 시뮬레이션 |
+| [GraphicsPipeline.md](./GraphicsPipeline.md) | ✅ [#14](https://github.com/jiy12345/DX12GameEngine/issues/14) | PSO, Root Signature, 파이프라인 단계 |
+| [VertexProcessing.md](./VertexProcessing.md) | ✅ [#14](https://github.com/jiy12345/DX12GameEngine/issues/14) | Vertex Buffer, Input Layout |
+| [Shaders.md](./Shaders.md) | ✅ [#14](https://github.com/jiy12345/DX12GameEngine/issues/14) | HLSL 셰이더, 런타임 컴파일 |
+| [WaterSimulation.md](./WaterSimulation.md) | ✅ [#38](https://github.com/jiy12345/DX12GameEngine/issues/38) | Gerstner Wave 기반 물 시뮬레이션 |
 | Rasterization.md | 미작성 | 래스터화 |
 | ResourceBinding.md | 미작성 | 리소스 바인딩 |
 
