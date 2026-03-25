@@ -1,5 +1,16 @@
 # 정점 처리 (Vertex Processing)
 
+## 목차
+
+- [개요](#개요)
+- [왜 필요한가?](#왜-필요한가)
+- [Vertex Buffer](#vertex-buffer)
+- [Input Layout](#input-layout)
+- [NDC 좌표계](#ndc-좌표계)
+- [주의사항](#주의사항)
+- [관련 개념](#관련-개념)
+- [참고 자료](#참고-자료)
+
 ## 개요
 정점(Vertex)은 3D 오브젝트를 구성하는 점이며, DX12에서는 정점 데이터를 **Vertex Buffer**에 담아 GPU에 전달하고, **Input Layout**으로 데이터 포맷을 정의한다.
 
