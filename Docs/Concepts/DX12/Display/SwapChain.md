@@ -10,6 +10,12 @@
   - [4. 리사이즈 처리](#4-리사이즈-처리)
   - [5. Tearing (VRR) 지원](#5-tearing-vrr-지원)
 - [차이점 요약 표](#차이점-요약-표)
+- [SwapChain과 Command Queue의 관계](#swapchain과-command-queue의-관계)
+  - [SwapChain은 Queue를 소유하지 않는다](#swapchain은-queue를-소유하지-않는다)
+  - [실제 데이터 흐름](#실제-데이터-흐름)
+  - [여러 Queue를 써도 SwapChain은 하나](#여러-queue를-써도-swapchain은-하나)
+  - [왜 Direct Queue만 넘길 수 있나?](#왜-direct-queue만-넘길-수-있나)
+  - [SwapChain 개수 결정 기준](#swapchain-개수-결정-기준)
 - [관련 API](#관련-api)
 - [주의사항](#주의사항)
 - [관련 개념](#관련-개념)
@@ -201,6 +207,124 @@ swapChain->Present(vsync ? 1 : 0, presentFlags);
 | **SwapEffect** | 모든 모드 | FLIP 모델만 | 성능 및 DWM 연동 |
 | **리사이즈** | RTV만 해제 | **모든 참조 해제 + GPU 대기** | 명시적 수명 관리 |
 | **Tearing/VRR** | 제한적 | ALLOW_TEARING 플래그 | VRR 디스플레이 지원 |
+
+## SwapChain과 Command Queue의 관계
+
+"SwapChain 생성 시 Command Queue를 전달한다"는 사실이 다음과 같은 오해를 일으키기 쉽습니다:
+
+- ❌ "SwapChain이 내부에 Queue를 가진다"
+- ❌ "사용자가 Draw 명령을 SwapChain에 넣으면 SwapChain이 처리한다"
+- ❌ "여러 Queue를 쓰려면 SwapChain도 여러 개 필요하다"
+
+**모두 잘못된 이해**입니다.
+
+### SwapChain은 Queue를 소유하지 않는다
+
+SwapChain은 **자체 Queue가 없습니다.** 대신 생성 시점에 외부 Queue를 **등록**받아, 자신이 해야 할 GPU 명령(주로 Present)을 그 Queue로 **제출 대행**시킵니다.
+
+| 오해 | 실제 |
+|------|------|
+| SwapChain이 Queue를 내부에 갖는다 | SwapChain은 외부 Queue를 **빌려 씀** |
+| SwapChain이 Command List를 받아 처리한다 | SwapChain은 **Command List를 받지 않음** |
+| 사용자 렌더링이 SwapChain을 거친다 | 사용자는 **Command Queue에 직접 제출**함 |
+| SwapChain이 렌더링 파이프라인의 일부다 | SwapChain은 **화면 출력만** 담당 |
+
+SwapChain의 소속 레이어도 다릅니다:
+- **SwapChain**: DXGI 레이어 (디스플레이 하드웨어와의 연결)
+- **Command Queue**: D3D12 레이어 (GPU 작업 분배)
+
+### 실제 데이터 흐름
+
+사용자가 렌더링하고 화면에 표시하는 흐름:
+
+```
+┌─────────────────────────────────────────────────────┐
+│ 1. 사용자가 Command List에 렌더링 명령 기록           │
+│    commandList->Draw(...);                           │
+│    commandList->Close();                             │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ 2. Command Queue에 직접 제출 (SwapChain 무관)        │
+│    directQueue->ExecuteCommandLists(list);           │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ 3. GPU 실행 → 백 버퍼 갱신                           │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ 4. 사용자가 Present 호출                             │
+│    swapChain->Present(1, 0);                         │
+│                                                      │
+│    SwapChain 내부:                                   │
+│    - Present GPU 명령 생성                           │
+│    - 등록된 Queue(directQueue)로 제출                │
+│    - VSync 등 타이밍 관리                            │
+└─────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────┐
+│ 5. GPU: 백 버퍼 → 프론트 버퍼 스왑                   │
+│    디스플레이 하드웨어 신호                           │
+└─────────────────────────────────────────────────────┘
+```
+
+**포인트**: 사용자의 렌더링 명령은 SwapChain을 전혀 거치지 않습니다. Command Queue에 직접 제출됩니다. SwapChain은 오직 **Present 명령만** 자신이 제출(등록된 Queue를 통해)합니다.
+
+### 여러 Queue를 써도 SwapChain은 하나
+
+DX12는 병렬 실행을 위해 여러 Queue를 권장합니다:
+- **Direct Queue**: 일반 렌더링
+- **Compute Queue**: 비동기 컴퓨트 (파티클, 광원 컬링 등)
+- **Copy Queue**: 백그라운드 복사 (텍스처 업로드)
+
+하지만 **최종적으로 화면에 나가는 건 Direct Queue가 만든 백 버퍼 하나**입니다. Compute/Copy Queue는 Direct Queue를 돕는 조력자 역할이고, 결과는 Direct Queue가 취합합니다.
+
+```cpp
+// 3개 Queue + 1개 SwapChain (전형적 구조)
+ID3D12CommandQueue* directQueue;   // Present 수행 + 일반 렌더링
+ID3D12CommandQueue* computeQueue;  // 비동기 컴퓨트
+ID3D12CommandQueue* copyQueue;     // 백그라운드 복사
+
+// SwapChain은 directQueue만 등록받음
+IDXGISwapChain3* swapChain;
+factory->CreateSwapChainForHwnd(directQueue, hwnd, &desc, ...);
+
+// 렌더링 루프
+while (running) {
+    copyQueue->ExecuteCommandLists(...);    // 독립 실행
+    computeQueue->ExecuteCommandLists(...); // 독립 실행
+    directQueue->ExecuteCommandLists(...);  // Compute/Copy 결과 취합 후 렌더링
+
+    swapChain->Present(1, 0);  // directQueue를 통해 Present 제출
+}
+```
+
+### 왜 Direct Queue만 넘길 수 있나?
+
+Present는 **그래픽 파이프라인 명령**이라 Direct Queue에서만 수행 가능합니다:
+
+| 큐 타입 | Present 가능? |
+|---------|--------------|
+| Direct | ✅ 가능 |
+| Compute | ❌ 불가 |
+| Copy | ❌ 불가 |
+
+Compute/Copy Queue를 SwapChain에 전달하면 생성이 실패합니다. 관례적으로 **Direct Queue**를 등록합니다.
+
+### SwapChain 개수 결정 기준
+
+SwapChain 수는 **Queue 수와 무관**하게, "화면 출력 대상의 수"에 의해 결정됩니다:
+
+| 상황 | SwapChain 수 |
+|------|-------------|
+| 일반 게임 (창 하나) | 1 |
+| 듀얼 모니터 각각 출력 | 2 (모니터당 1) |
+| 에디터 도킹 등 창 여러 개 | 창당 1 |
+| 멀티 GPU 각각 화면 출력 | GPU 수만큼 |
+| VR (각 눈 별도 출력) | 1~2 (VR 런타임 방식에 따라) |
+
+**정리**: SwapChain은 "화면과의 연결 창구"이고, Queue는 "GPU 내부 작업 채널"입니다. 역할이 완전히 달라서 개수도 독립적으로 결정됩니다.
 
 ## 관련 API
 
