@@ -277,7 +277,7 @@ cbuffer Good : register(b0)
 
 ### 선행 개념
 - [MemoryHeaps](./MemoryHeaps.md) - UPLOAD 힙 동작 원리
-- [RootSignature](./RootSignature.md) - 셰이더 리소스 바인딩 레이아웃
+- [RootSignature](../Pipeline/RootSignature.md) - 셰이더 리소스 바인딩 레이아웃
 
 ### 연관 개념
 - [ResourceBarriers](./ResourceBarriers.md) - 버퍼 상태 전환 (UPLOAD 힙은 불필요)

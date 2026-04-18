@@ -327,16 +327,16 @@ commandQueue->Signal(fence, ++fenceValue);
 ## 관련 개념
 
 ### 선행 개념 (먼저 이해해야 할 것)
-- [Device](./Device.md) - 커맨드 큐를 생성하는 팩토리
+- [Device](../Core/Device.md) - 커맨드 큐를 생성하는 팩토리
 
 ### 연관 개념 (함께 사용되는 것)
 - [CommandAllocator](./CommandAllocator.md) - 커맨드 메모리 할당
 - [CommandList](./CommandList.md) - 실제 명령을 기록하는 객체
-- [Synchronization](./Synchronization.md) - Fence를 사용한 동기화
-- [PipelineStateObject](./PipelineStateObject.md) - 사전 컴파일된 파이프라인 상태
+- [Synchronization](../Synchronization/Synchronization.md) - Fence를 사용한 동기화
+- [PipelineStateObject](../Pipeline/PipelineStateObject.md) - 사전 컴파일된 파이프라인 상태
 
 ### 후속 개념 (이후 학습할 것)
-- [ResourceBarriers](./ResourceBarriers.md) - 리소스 상태 전환
+- [ResourceBarriers](../Resources/ResourceBarriers.md) - 리소스 상태 전환
 
 ## 참고 자료
 

@@ -263,13 +263,13 @@ HRESULT ResizeBuffers(
 ## 관련 개념
 
 ### 선행 개념
-- [Device](./Device.md) - DXGI Factory를 생성
-- [CommandQueue](./CommandQueue.md) - 스왑체인 생성 시 전달
+- [Device](../Core/Device.md) - DXGI Factory를 생성
+- [CommandQueue](../Commands/CommandQueue.md) - 스왑체인 생성 시 전달
 
 ### 연관 개념
-- [RenderTargetView](./RenderTargetView.md) - 백 버퍼에 대한 RTV 생성
-- [ResourceBarriers](./ResourceBarriers.md) - 백 버퍼 상태 전환 (PRESENT ↔ RENDER_TARGET)
-- [Synchronization](./Synchronization.md) - 프레임 동기화
+- [RenderTargetView](../Descriptors/RenderTargetView.md) - 백 버퍼에 대한 RTV 생성
+- [ResourceBarriers](../Resources/ResourceBarriers.md) - 백 버퍼 상태 전환 (PRESENT ↔ RENDER_TARGET)
+- [Synchronization](../Synchronization/Synchronization.md) - 프레임 동기화
 
 ## 참고 자료
 
