@@ -165,10 +165,10 @@ void Window::HandleKeyboard(UINT msg, WPARAM wParam, LPARAM lParam)
 ## 관련 문서
 
 ### 구조
-- [Window Architecture](../../Structure/Platform/WindowArchitecture.md)
+- [Window Architecture](../../../Structure/Platform/WindowArchitecture.md)
 
 ### 활용법
-- [Creating Window](../../Usage/BasicTasks/CreatingWindow.md)
+- [Creating Window](../../../Usage/BasicTasks/CreatingWindow.md)
 
 ## 참고 자료
 - [Microsoft Keyboard Input 문서](https://learn.microsoft.com/en-us/windows/win32/inputdev/keyboard-input)

@@ -148,11 +148,12 @@ Phase 1 삼각형은 뷰 변환 없이 NDC 좌표를 직접 사용한다.
 ## 관련 개념
 
 ### 선행 개념
-- [커맨드 리스트](../../DX12/CommandList.md)
+- [커맨드 리스트](../../DX12/Commands/CommandList.md)
 
 ### 연관 개념
 - [그래픽스 파이프라인](./GraphicsPipeline.md)
-- [셰이더](./Shaders.md)
+- [셰이더](../Shaders/README.md)
+- [리소스 바인딩](../Shaders/ResourceBinding.md)
 
 ### 후속 개념
 - [Index Buffer](./IndexBuffer.md) *(TODO: Phase 2)*

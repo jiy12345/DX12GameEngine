@@ -185,7 +185,7 @@ int Window::Run()
 ## 관련 문서
 
 ### 구조
-- [Window Architecture](../../Structure/Platform/WindowArchitecture.md)
+- [Window Architecture](../../../Structure/Platform/WindowArchitecture.md)
 
 ## 참고 자료
 - [Microsoft Message Loop 문서](https://learn.microsoft.com/en-us/windows/win32/winmsg/about-messages-and-message-queues)

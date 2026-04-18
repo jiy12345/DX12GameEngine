@@ -136,8 +136,8 @@ commandList->DrawInstanced(vertexCount, instanceCount, startVertex, startInstanc
 ## 관련 개념
 
 ### 선행 개념
-- [커맨드 큐 & 커맨드 리스트](../../DX12/CommandQueue.md)
-- [셰이더](./Shaders.md)
+- [커맨드 큐 & 커맨드 리스트](../../DX12/Commands/CommandQueue.md)
+- [셰이더](../Shaders/README.md)
 - [정점 처리](./VertexProcessing.md)
 
 ### 연관 개념

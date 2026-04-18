@@ -337,12 +337,12 @@ public:
 ## 관련 개념
 
 ### 선행 개념
-- [Device](./Device.md) - Allocator를 생성하는 팩토리
+- [Device](../Core/Device.md) - Allocator를 생성하는 팩토리
 - [CommandQueue](./CommandQueue.md) - GPU 작업 제출
 
 ### 연관 개념
 - [CommandList](./CommandList.md) - Allocator와 함께 사용되는 기록 인터페이스
-- [Synchronization](./Synchronization.md) - Fence를 사용한 GPU 완료 확인
+- [Synchronization](../Synchronization/Synchronization.md) - Fence를 사용한 GPU 완료 확인
 
 ## 참고 자료
 

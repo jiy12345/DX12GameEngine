@@ -6,6 +6,7 @@
 - [왜 필요한가?](#왜-필요한가)
 - [DX11은 왜 비효율적이었나?](#dx11은-왜-비효율적이었나)
 - [드라이버 검증(Validation)이란?](#드라이버-검증validation이란)
+- [DX12의 설계 철학과 활용 조건](#dx12의-설계-철학과-활용-조건)
 - [커맨드 큐의 종류](#커맨드-큐의-종류)
 - [커맨드 실행 흐름](#커맨드-실행-흐름)
 - [관련 API](#관련-api)
@@ -181,6 +182,37 @@ commandList->DrawInstanced(3, 1, 0, 0);
 | 셰이더 조합 | 런타임에 조합/최적화 | PSO로 사전 컴파일 |
 | 결과 | CPU 오버헤드 높음 | CPU 오버헤드 최소화 |
 
+## DX12의 설계 철학과 활용 조건
+
+지금까지의 DX11 vs DX12 비교는 커맨드 큐에만 적용되는 이야기가 아닙니다. DX12 전반의 **"드라이버 추측 → 개발자 명시"** 라는 일관된 철학의 일부입니다. 같은 철학이 [리소스 배리어](../Resources/ResourceBarriers.md), [PSO](../Pipeline/PipelineStateObject.md), [Root Signature](../Pipeline/RootSignature.md) 등에도 적용됩니다.
+
+### 기회 제공형 API
+
+```
+DX11: 드라이버가 알아서 평균 70점 성능 보장
+DX12: 잘 쓰면 95점, 못 쓰면 50점
+```
+
+- **바닥값**은 DX11이 더 높음 (드라이버의 방어막)
+- **천장값**은 DX12가 훨씬 높음 (병렬성/제어의 자유)
+- 그 차이를 메우는 것은 **엔진 개발자의 역량**
+
+단순 포팅만으로는 DX11보다 느려지는 사례가 많습니다 (Rise of the Tomb Raider 등 초기 DX12 타이틀). DX12의 이득은 다음 중 하나 이상을 **실제로 활용**해야 납니다.
+
+### DX12의 장점이 나오는 조건
+
+| 활용 | 필요한 이해 |
+|------|------------|
+| 멀티스레드 커맨드 기록 | 스레드별 CommandList 분배, 동기화 |
+| 비동기 컴퓨트 | Direct/Compute 큐 병렬 실행, Fence |
+| Barrier 최적화 | 배치, Split Barrier, 최소 전환 |
+| PSO 사전 생성 | 런타임 PSO 컴파일 회피 (**DX11의 `.cso`와 다름** — 셰이더 바이트코드가 아니라 **셰이더 + 파이프라인 상태 조합**을 GPU 네이티브 코드로 사전 컴파일) |
+| Bindless / Descriptor 관리 | 힙 재사용, Dynamic Indexing |
+
+하나도 활용하지 않으면 DX11과 비슷하거나 더 나쁜 성능이 나옵니다. 본 프로젝트의 관련 연구: [#42 Command Queue 최적화 전략 연구](https://github.com/jiy12345/DX12GameEngine/issues/42).
+
+전체적인 커맨드 시스템 설명은 [Commands/README.md](./README.md) 참조.
+
 ## 커맨드 큐의 종류
 
 DX12는 세 가지 타입의 커맨드 큐를 제공합니다:
@@ -327,16 +359,16 @@ commandQueue->Signal(fence, ++fenceValue);
 ## 관련 개념
 
 ### 선행 개념 (먼저 이해해야 할 것)
-- [Device](./Device.md) - 커맨드 큐를 생성하는 팩토리
+- [Device](../Core/Device.md) - 커맨드 큐를 생성하는 팩토리
 
 ### 연관 개념 (함께 사용되는 것)
 - [CommandAllocator](./CommandAllocator.md) - 커맨드 메모리 할당
 - [CommandList](./CommandList.md) - 실제 명령을 기록하는 객체
-- [Synchronization](./Synchronization.md) - Fence를 사용한 동기화
-- [PipelineStateObject](./PipelineStateObject.md) - 사전 컴파일된 파이프라인 상태
+- [Synchronization](../Synchronization/Synchronization.md) - Fence를 사용한 동기화
+- [PipelineStateObject](../Pipeline/PipelineStateObject.md) - 사전 컴파일된 파이프라인 상태
 
 ### 후속 개념 (이후 학습할 것)
-- [ResourceBarriers](./ResourceBarriers.md) - 리소스 상태 전환
+- [ResourceBarriers](../Resources/ResourceBarriers.md) - 리소스 상태 전환
 
 ## 참고 자료
 

@@ -139,11 +139,11 @@ debugController3->SetEnableGPUBasedValidation(TRUE);
 ## 관련 개념
 
 ### 선행 개념
-- [Device](./Device.md) - Debug Layer는 Device 생성 전에 활성화해야 함
+- [Device](../Core/Device.md) - Debug Layer는 Device 생성 전에 활성화해야 함
 
 ### 연관 개념
-- [ResourceBarriers](./ResourceBarriers.md) - 배리어 누락을 Debug Layer가 감지
-- [MemoryHeaps](./MemoryHeaps.md) - 힙 타입 ↔ 리소스 상태 불일치를 Debug Layer가 감지
+- [ResourceBarriers](../Resources/ResourceBarriers.md) - 배리어 누락을 Debug Layer가 감지
+- [MemoryHeaps](../Resources/MemoryHeaps.md) - 힙 타입 ↔ 리소스 상태 불일치를 Debug Layer가 감지
 
 ## 참고 자료
 

@@ -371,13 +371,13 @@ HRESULT ID3D12GraphicsCommandList::Close();
 ## 관련 개념
 
 ### 선행 개념
-- [Device](./Device.md) - Command List를 생성하는 팩토리
+- [Device](../Core/Device.md) - Command List를 생성하는 팩토리
 - [CommandAllocator](./CommandAllocator.md) - 명령이 저장되는 메모리
 
 ### 연관 개념
 - [CommandQueue](./CommandQueue.md) - Command List를 GPU에 제출
-- [PipelineStateObject](./PipelineStateObject.md) - 렌더링 파이프라인 상태
-- [RootSignature](./RootSignature.md) - 셰이더 리소스 바인딩 정의
+- [PipelineStateObject](../Pipeline/PipelineStateObject.md) - 렌더링 파이프라인 상태
+- [RootSignature](../Pipeline/RootSignature.md) - 셰이더 리소스 바인딩 정의
 
 ## 참고 자료
 
