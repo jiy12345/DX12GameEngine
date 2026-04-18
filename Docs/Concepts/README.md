@@ -21,8 +21,7 @@
 - ResourceBarriers.md - 리소스 배리어와 상태 전환 **(미작성)** ([#21](https://github.com/jiy12345/DX12GameEngine/issues/21))
 - Synchronization.md - 동기화 (Fence) 개념 **(미작성)** ([#12](https://github.com/jiy12345/DX12GameEngine/issues/12))
 - [SwapChain.md](./DX12/SwapChain.md) - 스왑체인 개념 ([#9](https://github.com/jiy12345/DX12GameEngine/issues/9))
-- [MemoryHeaps.md](./DX12/MemoryHeaps.md) - 메모리 힙 타입 (UPLOAD/DEFAULT/READBACK) ([#20](https://github.com/jiy12345/DX12GameEngine/issues/20))
-- [ConstantBuffer.md](./DX12/ConstantBuffer.md) - 상수 버퍼 ([#20](https://github.com/jiy12345/DX12GameEngine/issues/20))
+- [MemoryHeaps.md](./DX12/Resources/MemoryHeaps.md) - 메모리 힙 타입 (UPLOAD/DEFAULT/READBACK) ([#20](https://github.com/jiy12345/DX12GameEngine/issues/20))
 
 ### Rendering/ - 렌더링 개념
 - [README.md](./Rendering/README.md) - 렌더링 개념 인덱스
@@ -31,7 +30,7 @@
 - [VertexProcessing.md](./Rendering/VertexProcessing.md) - 정점 처리 ([#14](https://github.com/jiy12345/DX12GameEngine/issues/14))
 - Rasterization.md - 래스터화 **(미작성)**
 - [Shaders.md](./Rendering/Shaders.md) - 셰이더 개념 ([#14](https://github.com/jiy12345/DX12GameEngine/issues/14))
-- ResourceBinding.md - 리소스 바인딩 **(미작성)**
+- [ResourceBinding.md](./Rendering/ResourceBinding.md) - 셰이더 리소스 바인딩 (Constant/Texture/UAV/Sampler) ([#20](https://github.com/jiy12345/DX12GameEngine/issues/20))
 - [WaterSimulation.md](./Rendering/WaterSimulation.md) - 물 시뮬레이션 개념 ([#41](https://github.com/jiy12345/DX12GameEngine/issues/41))
 
 ### Platform/ - 플랫폼 개념

@@ -12,7 +12,7 @@
 | [Shaders.md](./Shaders.md) | ✅ [#14](https://github.com/jiy12345/DX12GameEngine/issues/14) | HLSL 셰이더, 런타임 컴파일 |
 | [WaterSimulation.md](./WaterSimulation.md) | ✅ [#38](https://github.com/jiy12345/DX12GameEngine/issues/38) | Gerstner Wave 기반 물 시뮬레이션 |
 | Rasterization.md | 미작성 | 래스터화 |
-| ResourceBinding.md | 미작성 | 리소스 바인딩 |
+| [ResourceBinding.md](./ResourceBinding.md) | ✅ [#20](https://github.com/jiy12345/DX12GameEngine/issues/20) | 셰이더 리소스 바인딩 보편 개념 (Constant/Texture/UAV/Sampler) |
 
 ## 학습 순서 권장
 
