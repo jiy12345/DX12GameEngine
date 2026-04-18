@@ -118,25 +118,22 @@ commandQueue->ExecuteCommandLists(1, lists);
 
 ## Allocator와 List는 왜 분리되어 있나?
 
-이 둘이 합쳐져 있지 않은 이유는 **성능과 파이프라이닝** 때문입니다.
+이 둘이 합쳐져 있지 않은 이유는 **수명 주기 차이**와 **유연성** 때문입니다. 흔히 "메모리 효율"이 주된 이유로 언급되지만, 실무 환경(멀티스레드 기록)에서는 그 이득이 크지 않습니다. 진짜 이점은 다음 항목들에 있습니다.
 
-### 1. 메모리 효율 (중복 제거)
+### 1. 메모리 효율 (제한적 이점)
 
-"합쳐진 객체도 Reset해서 재사용할 수 있지 않나?" 라고 생각할 수 있습니다. 맞습니다. 하지만 **파이프라이닝(다음 항목)을 위해서는 N개의 복사본이 필요**한데, 합쳐진 상태로 N개를 두면 List의 상태 정보(PSO 참조, RootSig 참조, 상태 추적 등)까지 N배로 중복됩니다.
+단일 스레드 파이프라이닝에서는 `N Allocator + 1 List` 구조로 List 상태 메모리를 절약할 수 있습니다. 하지만:
 
-| 설계 | 구조 | 메모리 중복 |
-|------|------|-----------|
-| 분리 | `N Allocator + 1 List` | List 상태 1회분 + Allocator 메모리 N회분 |
-| 합침 | `N 합쳐진 객체` | List 상태도 N회분 + Allocator 메모리 N회분 |
-
-Allocator 메모리 자체는 수 MB가 될 수 있어 재사용이 중요하지만, 분리 덕에 **List 상태는 중복 없이 공유**할 수 있습니다.
-
-```cpp
-// 분리 설계의 재사용 예
-allocator->Reset();                        // GPU가 다 읽은 후에만 가능
-commandList->Reset(allocator, initialPSO); // 같은 List가 다른 Allocator 지정
-commandList->Draw(...);                    // 이 Allocator에 명령 기록
 ```
+단일 스레드 파이프라이닝:
+  N Allocator + 1 List     → 분리로 List 상태 (N-1)개 절약 ✅
+
+멀티스레드 기록 (실제 환경):
+  Thread × Frame 개 Allocator + Thread 개 List
+  → 결국 List도 여러 개 필요 → 메모리 절약 이득이 작아짐 ⚠️
+```
+
+> **솔직한 평가**: 멀티스레드 환경에서 **메모리 이득은 크지 않습니다.** List 객체는 수백 바이트 수준이라 Thread 수(보통 4~8)만큼 있어도 무시할 크기. 분리의 진짜 이득은 **2번~5번** 입니다.
 
 ### 2. CPU와 GPU의 수명 차이
 
@@ -153,20 +150,48 @@ GPU:                          [프레임 N 실행 ··········]
 
 각 스레드가 자기 Allocator + 자기 List를 쓰면, 서로 다른 메모리를 건드리므로 **락 없이 병렬 기록** 가능. 하나로 합쳐져 있었다면 내부 락이 필요했을 것입니다.
 
-### 4. List 하나로 여러 Allocator 전환
+### 4. Reset 비용의 분리 (중요)
+
+Allocator Reset과 List Reset의 **동작과 비용이 다릅니다**. 합쳐져 있다면 항상 둘 다 초기화해야 하지만, 분리되어 있으면 **필요한 것만** 초기화할 수 있습니다:
+
+| | Allocator Reset | List Reset |
+|---|----------------|-----------|
+| 하는 일 | 쓰기 오프셋만 0으로 리셋 | State machine 초기화 (PSO, RS, viewport, ...) |
+| 비용 | **매우 저렴** (포인터 조작만) | 중간 (상태 리셋 + 초기 PSO 바인딩) |
+| 사용 시점 | 프레임 끝, GPU 완료 후 | 매 기록 시작 전 |
+| GPU 대기 필요 | ✅ Fence로 확인 | ❌ |
+
+분리 덕분에:
+- **프레임 끝**: Allocator만 Reset (GPU 완료 확인 후), List는 그대로 두거나 다음 Allocator로 Reset
+- **기록 중간**: List만 Reset해서 다른 Allocator/PSO로 전환
+
+### 5. List 하나로 여러 Allocator 전환 (유연성)
 
 같은 Command List 객체를 **다른 Allocator와 번갈아** 사용 가능합니다:
 
 ```cpp
+// 한 List가 여러 Allocator를 순회
 commandList->Reset(renderAllocator, ...);
 commandList->Draw(...);
 commandList->Close();
+// 제출 후 같은 List를 다른 용도로 재사용 가능
 
 commandList->Reset(uiAllocator, ...);
 commandList->DrawUI(...);
+commandList->Close();
 ```
 
-정리: **"GPU가 쓰는 중인 메모리"** 와 **"CPU가 기록 중인 인터페이스"** 의 수명이 다르므로 분리하는 게 자연스럽고, 이 분리 덕에 파이프라이닝/멀티스레딩이 가능합니다.
+### 정리
+
+| 이점 | 단일 스레드 이득 | 멀티스레드 이득 |
+|------|--------------|--------------|
+| 1. 메모리 효율 | ⭐⭐ | ⭐ (제한적) |
+| 2. CPU-GPU 수명 분리 (파이프라이닝) | ⭐⭐⭐ | ⭐⭐⭐ |
+| 3. 멀티스레딩 (락 없는 기록) | — | ⭐⭐⭐ |
+| 4. Reset 비용 분리 | ⭐⭐ | ⭐⭐ |
+| 5. List 재사용 유연성 | ⭐⭐ | ⭐⭐ |
+
+**핵심**: 분리의 진짜 이득은 **"GPU가 쓰는 중인 메모리(Allocator)"와 "CPU가 기록하는 인터페이스(List)"의 수명이 근본적으로 다르기 때문**입니다. 메모리 효율은 부수적 이득이고, 수명 분리 + 유연성이 본질.
 
 ## 전체 실행 흐름
 
@@ -496,7 +521,48 @@ std::thread t4([]{ commandList4->Draw(...); });
 // - 8코어 CPU면 4개 스레드가 서로 다른 4개 코어에서 동시 실행
 ```
 
-개발자가 "어떤 코어에 배치할지"를 지시할 필요는 없지만, 최적화를 위해 **Thread Affinity**를 힌트로 줄 수는 있습니다 (`SetThreadAffinityMask`).
+개발자가 "어떤 코어에 배치할지"를 지시할 필요는 없지만, 최적화를 위해 **Thread Affinity**를 힌트 또는 강제로 줄 수는 있습니다.
+
+#### Thread Affinity란?
+
+**Thread Affinity(스레드 친화도)**: 특정 스레드를 **특정 CPU 코어에만 실행**되도록 제한하거나 선호하게 설정하는 기능.
+
+- **Hard Affinity**: 강제 — 지정된 코어에서만 실행 (`SetThreadAffinityMask`)
+- **Soft Affinity (Ideal Processor)**: 힌트 — 가능하면 이 코어에서 (`SetThreadIdealProcessor`)
+
+```cpp
+// 예: 렌더 스레드를 2번 코어에 고정
+HANDLE renderThread = GetCurrentThread();
+DWORD_PTR mask = (1ULL << 2);  // 비트 2 = 코어 2
+SetThreadAffinityMask(renderThread, mask);
+
+// 또는 힌트만 주기
+SetThreadIdealProcessor(renderThread, 2);
+```
+
+#### 게임 엔진에서의 실제 활용
+
+| 시나리오 | 활용 방법 |
+|---------|---------|
+| **하이브리드 CPU** (Intel 12세대+, ARM) | 렌더 스레드를 P-core에 고정, 백그라운드는 E-core |
+| **렌더 스레드 지연 최소화** | 시스템 스레드와 분리된 코어에 고정 |
+| **오디오 스레드** | 전용 코어에 고정 (glitch 방지) |
+| **캐시 친화성** | 같은 L3/CCX를 공유하는 코어에 관련 스레드 배치 (AMD Ryzen) |
+| **NUMA 시스템** | 같은 NUMA 노드의 코어에 작업 + 데이터 배치 |
+
+#### 주의사항
+
+- **OS 스케줄러를 방해할 수 있음**: 과도하게 affinity를 고정하면 부하 분산 저하
+- **사용자 환경 다양성**: 하드코딩된 affinity는 CPU별로 다른 코어 구성(코어 수, 하이브리드 여부)에 취약
+- **일반적 권장**: 대부분의 워커 스레드는 **OS에 맡기고**, 렌더 스레드/오디오 스레드 등 **특별한 요구사항**이 있는 소수 스레드만 affinity 설정
+- **런타임 감지 필수**: `GetLogicalProcessorInformation` 등으로 CPU 구성 파악 후 동적 affinity 결정
+
+#### 본 프로젝트에서의 활용 계획
+
+Phase 5 멀티스레딩 단계에서:
+- 렌더 스레드: 독립된 고성능 코어 (하이브리드 CPU의 P-core)
+- 워커 스레드 풀: OS 자동 배치 (Affinity 미설정)
+- 검증: [#44 하드웨어 스레드 활용 실측 실험](https://github.com/jiy12345/DX12GameEngine/issues/44) 에서 Affinity 유/무 비교
 
 ### Command List 기록이 병렬화에 이상적인 이유
 

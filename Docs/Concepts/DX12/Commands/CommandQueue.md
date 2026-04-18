@@ -206,7 +206,7 @@ DX12: 잘 쓰면 95점, 못 쓰면 50점
 | 멀티스레드 커맨드 기록 | 스레드별 CommandList 분배, 동기화 |
 | 비동기 컴퓨트 | Direct/Compute 큐 병렬 실행, Fence |
 | Barrier 최적화 | 배치, Split Barrier, 최소 전환 |
-| PSO 사전 생성 | 런타임 셰이더 컴파일 회피 |
+| PSO 사전 생성 | 런타임 PSO 컴파일 회피 (**DX11의 `.cso`와 다름** — 셰이더 바이트코드가 아니라 **셰이더 + 파이프라인 상태 조합**을 GPU 네이티브 코드로 사전 컴파일) |
 | Bindless / Descriptor 관리 | 힙 재사용, Dynamic Indexing |
 
 하나도 활용하지 않으면 DX11과 비슷하거나 더 나쁜 성능이 나옵니다. 본 프로젝트의 관련 연구: [#42 Command Queue 최적화 전략 연구](https://github.com/jiy12345/DX12GameEngine/issues/42).
