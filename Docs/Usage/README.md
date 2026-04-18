@@ -17,6 +17,7 @@
 - CreatingSwapChain.md - 스왑체인 생성하기 **(미작성)**
 - ManagingDescriptors.md - 디스크립터 관리하기 **(미작성)**
 - RenderingTriangle.md - 첫 삼각형 렌더링하기 **(미작성)**
+- [UsingConstantBuffer.md](./BasicTasks/UsingConstantBuffer.md) - Constant Buffer 사용하기 (DX12 구현 가이드) ([#20](https://github.com/jiy12345/DX12GameEngine/issues/20))
 
 ### AdvancedTasks/ - 고급 작업
 - ResourceManagement.md - 리소스 관리 **(미작성)**
