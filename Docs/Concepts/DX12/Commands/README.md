@@ -16,12 +16,22 @@
   - [GPU 하드웨어 엔진](#gpu-하드웨어-엔진)
   - [큐 타입과 엔진 매핑](#큐-타입과-엔진-매핑)
   - [Fence를 통한 큐 간 동기화](#fence를-통한-큐-간-동기화)
+- [Draw 호출이 실제로 하는 일](#draw-호출이-실제로-하는-일)
 - [멀티스레드 기록의 실제 의미](#멀티스레드-기록의-실제-의미)
   - [흔한 오해](#흔한-오해)
   - [CPU에서 기록이 왜 무거운가](#cpu에서-기록이-왜-무거운가)
   - [실제 숫자로 보기](#실제-숫자로-보기)
+  - [단일 스레드 + 여러 Allocator로 해결되나?](#단일-스레드--여러-allocator로-해결되나)
   - [멀티스레드 기록 효과](#멀티스레드-기록-효과)
   - [GPU는 병렬 기록과 무관](#gpu는-병렬-기록과-무관)
+- [하드웨어 스레드와 실제 병렬 실행](#하드웨어-스레드와-실제-병렬-실행)
+  - [소프트웨어 스레드와 하드웨어 스레드](#소프트웨어-스레드와-하드웨어-스레드)
+  - [Command List 기록이 병렬화에 이상적인 이유](#command-list-기록이-병렬화에-이상적인-이유)
+  - [실제 스케일링 사례](#실제-스케일링-사례)
+  - [Amdahl의 법칙과 실무 상한](#amdahl의-법칙과-실무-상한)
+  - [실측 검증](#실측-검증)
+- [구현 패턴: 페어링 vs 풀](#구현-패턴-페어링-vs-풀)
+- [주의사항](#주의사항)
 - [학습 순서](#학습-순서)
 - [참고 자료](#참고-자료)
 
@@ -110,16 +120,23 @@ commandQueue->ExecuteCommandLists(1, lists);
 
 이 둘이 합쳐져 있지 않은 이유는 **성능과 파이프라이닝** 때문입니다.
 
-### 1. 메모리 재사용
+### 1. 메모리 효율 (중복 제거)
+
+"합쳐진 객체도 Reset해서 재사용할 수 있지 않나?" 라고 생각할 수 있습니다. 맞습니다. 하지만 **파이프라이닝(다음 항목)을 위해서는 N개의 복사본이 필요**한데, 합쳐진 상태로 N개를 두면 List의 상태 정보(PSO 참조, RootSig 참조, 상태 추적 등)까지 N배로 중복됩니다.
+
+| 설계 | 구조 | 메모리 중복 |
+|------|------|-----------|
+| 분리 | `N Allocator + 1 List` | List 상태 1회분 + Allocator 메모리 N회분 |
+| 합침 | `N 합쳐진 객체` | List 상태도 N회분 + Allocator 메모리 N회분 |
+
+Allocator 메모리 자체는 수 MB가 될 수 있어 재사용이 중요하지만, 분리 덕에 **List 상태는 중복 없이 공유**할 수 있습니다.
 
 ```cpp
-// 분리 덕분에 매 프레임 메모리 할당 없이 Reset만으로 재사용
-allocator->Reset();                        // 메모리 그대로, 내용만 초기화
-commandList->Reset(allocator, initialPSO); // List는 Allocator를 다시 가리킬 뿐
-commandList->Draw(...);                    // 같은 메모리에 새 명령 쓰기
+// 분리 설계의 재사용 예
+allocator->Reset();                        // GPU가 다 읽은 후에만 가능
+commandList->Reset(allocator, initialPSO); // 같은 List가 다른 Allocator 지정
+commandList->Draw(...);                    // 이 Allocator에 명령 기록
 ```
-
-Allocator는 수 MB 크기가 될 수 있어, 매 프레임 새로 할당하면 큰 오버헤드입니다.
 
 ### 2. CPU와 GPU의 수명 차이
 
@@ -274,16 +291,77 @@ directQueue->ExecuteCommandLists(1, &lightingList);
 
 **핵심**: `Signal`과 `Wait`는 **GPU 측에서** 대기합니다. CPU가 막히지 않고 계속 다음 프레임을 준비할 수 있습니다.
 
+## Draw 호출이 실제로 하는 일
+
+멀티스레드 기록의 필요성을 이해하려면 먼저 `Draw()` 호출이 실제로 무엇인지 정확히 알아야 합니다.
+
+### 흔한 오해: "Draw() 시점에 GPU가 그리기 시작한다"
+
+```cpp
+commandList->DrawInstanced(3, 1, 0, 0);
+```
+
+이 한 줄을 보면 "GPU가 이 시점에 그리기 시작한다"고 오해하기 쉽지만, **GPU는 아직 이 명령의 존재조차 모릅니다.**
+
+### 실제 동작
+
+`Draw()` 호출이 실제로 하는 일:
+
+1. CPU가 Draw 명령을 **GPU 명령 바이트로 인코딩**
+2. 현재 바인딩된 **리소스 참조들을 함께 기록** (PSO 주소, RootSig 슬롯, VB/IB 주소, 디스크립터 핸들 등)
+3. 그 바이트 시퀀스를 **Allocator 메모리에 쓰기**
+4. 함수 리턴 (끝. GPU는 아직 아무것도 안 함)
+
+### GPU는 언제 시작하는가?
+
+GPU가 실제로 명령을 읽기 시작하는 시점은 `Draw()`가 아니라:
+
+```cpp
+commandQueue->ExecuteCommandLists(1, &commandList);
+```
+
+여기서 처음으로 GPU가 Allocator 메모리를 DMA로 읽기 시작합니다.
+
+### 타임라인
+
+```
+CPU timeline:
+[Draw encode (1-10μs)] [Draw encode] [Draw encode] ... [Close] [ExecuteCommandLists ~0μs]
+                                                                ↓ 여기서 처음으로
+GPU timeline:                                                   [GPU가 명령 읽고 실행]
+```
+
+### 왜 Draw 한 번이 1~10μs나 걸리나?
+
+단순히 `DRAW 3 1 0 0` 같은 짧은 바이트만 쓰는 게 아닙니다. GPU가 **독립적으로 실행할 수 있는 자족적 명령 패킷**이 되어야 하므로:
+
+- 현재 PSO 주소
+- Root Signature 슬롯마다의 디스크립터 핸들
+- 바인딩된 Vertex Buffer / Index Buffer 주소
+- Viewport / Scissor 상태
+- 기타 파이프라인 상태
+
+이 모든 참조를 함께 인코딩해야 합니다. 결과적으로 Draw 하나가 수십~수백 바이트의 GPU 명령 바이트로 변환되고, 이 과정이 CPU에서 1~10μs 걸립니다.
+
+### 결론
+
+**"Draw call이 비싸다"** 의 진짜 의미:
+- ❌ "GPU가 그리는 게 비싸다"
+- ✅ "CPU가 그 명령을 Allocator에 쓰는 게 비싸다"
+
+이 인식이 있어야 다음의 "멀티스레드 기록"이 왜 중요한지가 체감됩니다.
+
 ## 멀티스레드 기록의 실제 의미
 
 ### 흔한 오해
 
 > "Command List의 주요 작업은 GPU에서 일어나니까, 기록을 병렬화해도 의미 없지 않나?"
 
-이 오해는 두 가지 혼동에서 비롯됩니다:
+이 오해는 세 가지 혼동에서 비롯됩니다:
 
-1. **병렬화 대상은 "제출"이 아니라 "기록"** - 제출(ExecuteCommandLists)은 거의 공짜, 기록이 무거움
-2. **기록은 단순 포인터 조작이 아님** - 실제로는 상당한 CPU 작업
+1. **Draw()는 GPU 작업이 아니라 CPU 작업** - 앞 섹션 ["Draw 호출이 실제로 하는 일"](#draw-호출이-실제로-하는-일) 참조
+2. **병렬화 대상은 "제출"이 아니라 "기록"** - 제출(ExecuteCommandLists)은 거의 공짜, 기록이 무거움
+3. **기록은 단순 포인터 조작이 아님** - 리소스 참조 포함 상세 인코딩이 필요
 
 ### CPU에서 기록이 왜 무거운가
 
@@ -325,6 +403,42 @@ Draw Call 하나당 3μs 가정
 
 CPU가 기록을 못 따라가면 **GPU가 논다** (GPU starvation). 그래픽 카드가 아무리 빨라도 CPU 병목 때문에 FPS가 안 나옵니다.
 
+### 단일 스레드 + 여러 Allocator로 해결되나?
+
+"그냥 메인 스레드 하나로 Allocator를 여러 개 할당받아서 순차적으로 쓰면 되지 않나?" 라고 생각할 수 있습니다. **안 됩니다.** 이유:
+
+```
+여러 Allocator (단일 스레드):
+CPU: [F0 기록 → A: 30ms] [F1 기록 → B: 30ms]
+GPU:                      [F0 실행 A: 10ms] [F1 실행 B: 10ms]
+                          ↑ CPU가 B 기록 중 GPU가 A 실행 (병렬)
+
+프레임 시간 = max(CPU=30, GPU=10) = 30ms → 33fps (CPU 병목)
+```
+
+여러 Allocator는 **CPU-GPU 병렬**만 만들지, CPU 자체 속도는 그대로입니다. 여전히 30ms 상한.
+
+CPU 시간 자체를 줄이려면 **여러 스레드**가 필요합니다:
+
+```
+4 스레드 + 여러 Allocator:
+T1: [2,500 Draw: 7.5ms]
+T2: [2,500 Draw: 7.5ms]  병렬
+T3: [2,500 Draw: 7.5ms]
+T4: [2,500 Draw: 7.5ms]
+
+프레임 시간 = max(CPU=7.5, GPU=10) = 10ms → 100fps 가능
+```
+
+### 두 전략의 역할 구분
+
+| 전략 | 해결하는 문제 | 필요한 객체 |
+|------|-------------|-----------|
+| **여러 Allocator** | GPU가 CPU를 기다리는 문제 (CPU-GPU 병렬) | `1 List + N Allocator` |
+| **여러 스레드** | CPU 단일 스레드가 느린 문제 (CPU 내부 병렬) | `N List + N Allocator` |
+
+실제 엔진은 **두 전략을 동시에 사용**합니다. 스레드별로 List를 두고, 각 스레드가 N개 Allocator를 돌려씁니다. 총 `Thread × Frame` 개의 Allocator + `Thread` 개의 List.
+
 ### 멀티스레드 기록 효과
 
 ```
@@ -351,6 +465,196 @@ GPU:          [실행 ██████████████]  ← 순서대
 **GPU는 받은 순서대로 처리**합니다. 병렬 기록의 목적은 GPU를 빠르게 만드는 것이 아니라, **CPU 기록이 GPU 실행 속도를 못 따라가는 병목을 해소하는 것**입니다.
 
 DX11은 Deferred Context에서 드라이버 내부 락 때문에 진짜 병렬이 안 됐지만, DX12는 Command List가 완전히 독립적이라 **선형에 가까운 스레드 확장성**을 얻습니다. 이것이 DX12가 DX11보다 실제로 빨라지는 핵심 이유 중 하나입니다.
+
+## 하드웨어 스레드와 실제 병렬 실행
+
+"멀티스레드 기록"이 실제 성능 이득이 되려면 **여러 물리 CPU 코어에서 동시 실행**되어야 합니다. 이게 실제로 되는지, 어떤 메커니즘인지 다룹니다.
+
+### 소프트웨어 스레드와 하드웨어 스레드
+
+| | 정의 |
+|---|------|
+| **소프트웨어 스레드** | `std::thread` 등으로 만드는 OS 실행 단위 |
+| **하드웨어 스레드** | 물리 CPU 코어 (+ SMT/HyperThreading으로 배수) |
+
+소프트웨어 스레드를 만들기만 해서는 병렬이 안 됩니다. **OS 스케줄러가 각 소프트웨어 스레드를 서로 다른 CPU 코어에 할당**해야 진짜 병렬입니다.
+
+현대 CPU:
+- 일반 데스크탑: 6~16 코어 (+ SMT로 12~32 논리 코어)
+- 콘솔 (PS5/Xbox Series X): 8 물리 코어 (16 논리)
+
+```cpp
+// 이렇게 스레드 만들면
+std::thread t1([]{ commandList1->Draw(...); });
+std::thread t2([]{ commandList2->Draw(...); });
+std::thread t3([]{ commandList3->Draw(...); });
+std::thread t4([]{ commandList4->Draw(...); });
+
+// OS 스케줄러(Windows):
+// - CPU 상태 확인 (각 코어가 바쁜가?)
+// - 유휴 코어에 스레드 배치
+// - 8코어 CPU면 4개 스레드가 서로 다른 4개 코어에서 동시 실행
+```
+
+개발자가 "어떤 코어에 배치할지"를 지시할 필요는 없지만, 최적화를 위해 **Thread Affinity**를 힌트로 줄 수는 있습니다 (`SetThreadAffinityMask`).
+
+### Command List 기록이 병렬화에 이상적인 이유
+
+모든 작업이 코어 수만큼 선형 스케일되진 않습니다. Command List 기록은 병렬화의 교과서 같은 케이스입니다:
+
+| 병렬화 장애 요인 | 일반 작업 | Command List 기록 |
+|---|---|---|
+| I/O 대기 | 디스크/네트워크 때문에 코어가 놂 | **없음** (순수 CPU) |
+| 공유 자원 경합 | 락으로 스레드 간 대기 | **거의 없음** (각 스레드 자기 List) |
+| 의존성 체인 | 앞 단계가 끝나야 다음 시작 | **없음** (객체별 독립) |
+| 메모리 경합 | 캐시 라인 공유 | **거의 없음** (별도 Allocator 메모리) |
+
+그래서 **N배 코어 = N배에 가까운 속도 향상**(선형 스케일링)이 실제로 나옵니다.
+
+DX12 설계 문서 (Microsoft 공식):
+
+> "The primary motivation for Direct3D 12 is **to reduce the CPU overhead** of rendering and to **better utilize multi-core CPUs**."
+>
+> — [Microsoft: What is Direct3D 12?](https://learn.microsoft.com/en-us/windows/win32/direct3d12/direct3d-12-graphics)
+
+"멀티코어 활용"은 DX12의 **설계 목적 그 자체**입니다.
+
+### 실제 스케일링 사례
+
+- **3DMark API Overhead Feature Test**: 단일 스레드 대비 4 스레드에서 약 6~8배 (DX11 대비 DX12 이득 포함)
+- **AAA 게임 일반**: 8 코어에서 4 코어 대비 30~60% FPS 향상
+- **Ashes of the Singularity (early DX12 타이틀)**: 4 스레드 활용 시 약 3.5배
+
+### Amdahl의 법칙과 실무 상한
+
+"그러면 32 코어 쓰면 32배 빠르겠네?" → **아닙니다.**
+
+```
+프레임 전체 = [직렬: 장면 준비] [병렬 가능: Draw 기록] [직렬: 제출/Present]
+              2ms               30ms                    1ms
+```
+
+- 32 코어: `2 + (30/32) + 1 = 3.9ms` (이론상)
+- 8 코어: `2 + (30/8) + 1 = 6.75ms`
+- 4 코어: `2 + (30/4) + 1 = 10.5ms`
+
+**직렬 부분(3ms)이 하한**을 정합니다. 일정 코어 수 이상에서는 추가 이득이 미미하고, 다음의 실무적 한계가 있습니다:
+
+- 스레드 스케줄링 오버헤드 누적
+- 메모리 대역폭 포화 (많은 코어가 동시 접근)
+- CPU 캐시 경합 (False Sharing)
+
+**보통 4~8 스레드가 실무 스윗스팟**입니다.
+
+### 실측 검증
+
+이론적 스케일링이 실제 하드웨어에서 제대로 나오는지 확인하려면 벤치마크가 필요합니다. 본 프로젝트의 관련 실험:
+
+- [#44 하드웨어 스레드 활용 실측 실험](https://github.com/jiy12345/DX12GameEngine/issues/44) (예정)
+  - N threads로 동일한 Draw call 개수를 분할 기록
+  - 코어별 사용률 모니터링 (Task Manager, WPA, Intel VTune)
+  - 스레드 수별 frame time 측정
+  - 선형 스케일링 여부 검증
+
+## 구현 패턴: 페어링 vs 풀
+
+실제 엔진이 List와 Allocator를 관리하는 두 가지 대표 패턴입니다.
+
+### 패턴 A: 페어링 (1:1 매핑)
+
+```cpp
+struct CommandPair {
+    ComPtr<ID3D12CommandAllocator> allocator;
+    ComPtr<ID3D12GraphicsCommandList> list;
+    UINT64 fenceValue;
+};
+
+std::vector<CommandPair> pairs;  // 미리 N개 생성
+```
+
+**장점**:
+- 단순한 멘탈 모델 (1:1 관계)
+- Fence 추적 용이 (페어 단위)
+- 디버깅 쉬움 (페어에 이름 붙이기)
+
+**단점**:
+- List 상태가 N회분 중복 (메모리 낭비)
+- 유연성 부족 (List가 다른 Allocator 전환 못 함)
+- 규모 확장 시 `Thread × Frame × Pass` 페어 폭발
+
+**적합한 경우**: 프로토타입, 학습, 단순 렌더러
+
+### 패턴 B: 풀 기반 관리
+
+```cpp
+class CommandContext {
+    std::vector<ComPtr<ID3D12CommandAllocator>> allocatorPool;
+    std::vector<ComPtr<ID3D12GraphicsCommandList>> listPool;
+
+    auto AcquireAllocator() -> ID3D12CommandAllocator*;
+    auto AcquireList(ID3D12CommandAllocator* allocator) -> ID3D12GraphicsCommandList*;
+    void Return(...);
+};
+```
+
+**장점**:
+- List를 적게 유지하고 재활용 (메모리 효율)
+- 유연한 조합 (어떤 List + 어떤 Allocator)
+- Bundle 재사용에 유리
+- 규모 확장성 우수
+
+**단점**:
+- 구현 복잡 (수명 관리, 동시 사용 방지)
+- 디버깅 난이도 ↑
+- 초기 설계 비용
+
+**적합한 경우**: 프로덕션 엔진, 멀티스레드 + 대규모 씬
+
+### 선택 기준
+
+| 상황 | 추천 |
+|------|------|
+| 프로토타입 / 학습 / 단순 렌더러 | 페어링 |
+| 프로덕션 엔진 / 대규모 씬 | 풀 기반 |
+| 멀티스레드 사용 안 함 | 페어링 충분 |
+| 수십 스레드 + 복잡한 패스 | 풀 기반 필수 |
+
+본 프로젝트는 Phase 1이니 페어링으로 시작하고, Phase 5(멀티스레딩)에서 풀 기반으로 리팩터링하는 전략이 합리적입니다.
+
+## 주의사항
+
+### Allocator 생성 실패 가능
+
+Allocator는 **CPU 시스템 메모리를 실제로 할당**합니다. 시스템 메모리 부족 시 실패 가능:
+
+```cpp
+HRESULT hr = device->CreateCommandAllocator(...);
+if (FAILED(hr)) {
+    // E_OUTOFMEMORY 등 - 에러 처리 필요
+}
+```
+
+### Reset 시점 주의
+
+GPU가 아직 해당 Allocator의 명령을 읽고 있을 때 `Reset()` 호출 시:
+- Debug Layer: 경고 + `E_FAIL`
+- Release: **GPU 크래시 / 데이터 손상**
+
+→ Fence로 GPU 완료를 반드시 확인 후 Reset.
+
+### Allocator 내부 메모리 확장
+
+기록 중 Allocator 공간 부족 시 드라이버가 내부적으로 페이지를 추가 할당합니다. 이 과정에서도 실패 가능:
+- 증상: `Close()` 또는 이후 `Execute()`에서 HR 실패 또는 Device Removed
+- 대응: 프레임당 Allocator 크기 모니터링, 과도한 명령 기록 방지
+
+### Allocator 누수
+
+프레임마다 새 Allocator를 만들고 해제하지 않으면 시스템 메모리가 누적 고갈됩니다. 반드시 재사용 패턴으로 관리하세요.
+
+### 개별 List의 스레드 안전성
+
+개별 Command List는 **스레드 안전하지 않습니다**. 하나의 List를 여러 스레드가 동시에 기록하면 안 됩니다. 병렬 기록은 반드시 **스레드별 독립 List**로 해야 합니다.
 
 ## 학습 순서
 
