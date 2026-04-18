@@ -257,12 +257,60 @@ float4 VSMain(float3 pos : POSITION) : SV_POSITION
 
 ## 프레임 버퍼링 구현 (Multi-buffering)
 
-GPU가 이전 프레임 커맨드를 실행하는 동안 CPU가 다음 프레임 데이터를 써야 한다면, 백 버퍼 수만큼 Constant Buffer를 **중복 생성**합니다.
+### 어떤 병목을 회피하는가?
+
+프레임 버퍼링의 목적은 **CPU-GPU 동기화 병목**을 제거하는 것입니다. 단일 버퍼로 이 패턴을 구현하면 CPU와 GPU가 **순차 실행**될 수밖에 없어 전체 처리량이 크게 떨어집니다.
+
+#### 단일 버퍼의 문제 (병목)
+
+```
+시간 →
+CPU: [Buffer 쓰기 → Draw 기록 → 제출]  [GPU 완료 대기 ·····]  [다시 쓰기 → ...]
+GPU:                                   [Buffer 읽고 렌더 ────]
+                                       ↑ CPU는 여기서 놀아야 함
+                                         (Buffer를 건드리면 GPU가 읽던 데이터 변조)
+```
+
+**왜 대기가 필요한가**:
+- CPU가 다음 프레임의 Constant Buffer 값(예: 카메라 매트릭스 업데이트)을 쓰려는 순간
+- GPU가 아직 이번 프레임의 같은 Buffer를 읽고 있다면
+- **같은 메모리에 동시 접근** → race condition → 깨진 데이터로 렌더링
+- 이를 피하려고 CPU는 GPU 완료를 기다려야 함 (Fence 등)
+
+결과: CPU와 GPU가 **교대로** 일해야 하므로 프레임 시간 = CPU 시간 + GPU 시간. **파이프라이닝 불가**.
+
+#### 다중 버퍼로 해결
+
+```
+시간 →
+CPU: [Buffer[0] 쓰기]  [Buffer[1] 쓰기]  [Buffer[2] 쓰기]  [Buffer[0] 재사용]
+GPU:                   [Buffer[0] 렌더]  [Buffer[1] 렌더]  [Buffer[2] 렌더]
+                       ↑ CPU와 GPU가 **동시에 다른 버퍼**를 작업
+                         → 대기 없이 파이프라이닝
+```
+
+**핵심**: 백 버퍼 수만큼 Constant Buffer를 **중복 생성**하면 CPU와 GPU가 서로 다른 버퍼를 동시에 건드릴 수 있습니다. Race condition 없이 파이프라이닝 성립.
+
+### 동일한 원리가 적용되는 리소스들
+
+프레임 버퍼링은 Constant Buffer 고유 기법이 아니라 **"CPU가 매 프레임 업데이트하고 GPU가 읽는 모든 리소스"** 에 공통 적용되는 패턴입니다:
+
+| 리소스 | 중복 생성 단위 |
+|--------|-------------|
+| SwapChain 백 버퍼 | 기본 2~3개 |
+| Command Allocator | 프레임 수만큼 |
+| Constant Buffer | 프레임 수만큼 |
+| 프레임별 Dynamic Buffer (인스턴스 데이터 등) | 프레임 수만큼 |
+| 프레임별 Descriptor Heap 구간 | 프레임 수만큼 |
+
+이런 리소스들을 묶어 관리하는 구조가 **"Frame-Indexed Resources"** 패턴이며, 본 프로젝트의 구현 이슈는 [#45 프레임 파이프라이닝 (Frame-Indexed Resources) 구현](https://github.com/jiy12345/DX12GameEngine/issues/45) 에서 다룹니다.
+
+### 구현
 
 ```
 프레임 N   : CPU가 Buffer[0]에 쓰기 → GPU가 Buffer[0] 읽기
 프레임 N+1 : CPU가 Buffer[1]에 쓰기 → GPU가 Buffer[1] 읽기
-프레임 N+2 : CPU가 Buffer[0]에 쓰기 (재사용) → ...
+프레임 N+2 : CPU가 Buffer[0]에 쓰기 (재사용, 이미 GPU가 다 읽음) → ...
 ```
 
 ```cpp
