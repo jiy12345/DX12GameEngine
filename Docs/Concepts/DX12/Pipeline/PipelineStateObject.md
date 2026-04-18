@@ -253,6 +253,8 @@ PSO는 다음 **모든 조합**에 대해 별도 인스턴스가 필요합니다
 
 **PSO 내부 자체를 압축할 수는 없습니다.** PSO는 드라이버가 컴파일한 GPU 네이티브 코드와 상태를 담고 있어 개발자가 건드릴 수 없는 블랙박스입니다. 따라서 메모리 절약은 **"PSO 개수를 줄이는"** 방향으로 접근합니다.
 
+> **유지보수 관점**: PSO 개수 자체는 줄이지 않지만 **PSO 생성 코드의 유지보수성**을 크게 개선하는 방법도 있습니다 (Template MP / Fluent Builder). 아래 [6번 항목](#6-template-mp--fluent-builder-유지보수-관점)에서 다룹니다.
+
 #### 1. Hash 기반 Deduplication (중복 제거)
 
 같은 상태 조합으로 여러 Material이 PSO를 요청하면 **하나만 생성**하고 공유:
@@ -329,15 +331,103 @@ library->LoadGraphicsPipeline(L"TransparentLit", &newDesc, IID_PPV_ARGS(&pso2));
 
 **효과**: 드라이버 수준에서 중복 코드 공유 가능.
 
+#### 6. Template MP / Fluent Builder (유지보수 관점)
+
+PSO 개수는 줄이지 않지만 **PSO 생성 코드의 유지보수성과 실수 방지**에 크게 기여하는 접근. 대형 엔진(UE, Unity 등)이 모두 사용하는 기법.
+
+##### 문제: Naive PSO 생성 코드의 반복
+
+```cpp
+// 머티리얼마다 이런 보일러플레이트를 반복
+D3D12_GRAPHICS_PIPELINE_STATE_DESC desc1 = {};
+desc1.pRootSignature = rootSig;
+desc1.VS = { vs1.data, vs1.size };
+desc1.PS = { ps1.data, ps1.size };
+desc1.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+desc1.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+desc1.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+desc1.InputLayout = { layout1, _countof(layout1) };
+desc1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+desc1.NumRenderTargets = 1;
+desc1.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+desc1.SampleDesc.Count = 1;
+// ... 30줄 설정 ×  머티리얼 수
+
+D3D12_GRAPHICS_PIPELINE_STATE_DESC desc2 = {};
+// 또 30줄 ...  (일부만 다름)
+```
+
+문제점:
+- 실수 가능성 (설정 누락 시 UB)
+- 동일 값이 여러 곳에 중복 → 값 변경 시 여러 곳 수정
+- "이 PSO가 어떤 설정의 조합인지" 한눈에 파악 어려움
+
+##### 해결책 A: Fluent Builder (런타임 구성)
+
+```cpp
+// 메서드 체인으로 필요한 설정만 명시
+auto pso = PSOBuilder(device)
+    .RootSignature(rootSig)
+    .VS(vs1).PS(ps1)
+    .InputLayout(layout1)
+    .BlendPreset(BlendMode::Opaque)
+    .RasterizerPreset(RasterMode::BackCull)
+    .DepthWrite(true).DepthCompare(Less)
+    .RenderTarget(0, DXGI_FORMAT_R8G8B8A8_UNORM)
+    .Build();
+```
+
+**장점**:
+- 의도가 코드에서 바로 읽힘
+- 기본값은 생략 가능 (Builder 내부에서 적용)
+- 프리셋(Preset) 공통화로 중복 제거
+
+##### 해결책 B: Template Metaprogramming (컴파일 타임 조합)
+
+```cpp
+// 템플릿 매개변수로 조합 지정 → 컴파일 타임 검증
+using OpaqueLitPSO = PSO<
+    InputLayout<PositionNormalUV>,
+    Shaders<OpaqueLitVS, OpaqueLitPS>,
+    Blend<Opaque>,
+    Rasterizer<BackCull>,
+    DepthStencil<WriteEnabled>,
+    RenderTargets<Format::RGBA8, Format::D32Float>
+>;
+
+// 사용
+auto pso = OpaqueLitPSO::Create(device);
+```
+
+**장점**:
+- **컴파일 타임에 조합 검증** (잘못된 조합은 컴파일 실패)
+- 타입 안전성 극대화
+- 각 조합을 타입으로 명명 → 코드 가독성 ↑
+- IDE 자동완성 강력
+
+**단점**:
+- 컴파일 시간 증가
+- 템플릿 에러 메시지가 난해
+- 런타임 동적 조합은 불가 (Builder와 혼용 필요)
+
+##### 실무에서는
+
+대형 엔진들은 보통 **Builder (주) + Template (핵심 타입) 혼합** 사용:
+- 공통 머티리얼 타입은 Template으로 고정 (컴파일 타임 안전성)
+- 동적 변형은 Builder로 런타임 구성
+
+본 프로젝트 관련 이슈: PSO 생성 코드 개선 sub-issue (본 이슈 생성 후 #50 Epic 하위에 추가 예정)
+
 #### 권장 조합
 
-실무 엔진은 보통 **1 + 4** 조합:
+실무 엔진은 보통 **1 + 4 + 6** 조합:
 - Hash dedup (무조건 기본)
 - Shader Permutation 축소 (관리 가능한 수준으로)
+- Template/Builder (유지보수)
 
 그 위에 2번 (Cache)은 배포 시 적용, 3번 (Lazy)은 상황에 따라.
 
-> 본 프로젝트의 관련 구현 이슈는 [PSO 관리 시스템 구축 이슈](https://github.com/jiy12345/DX12GameEngine/issues/45) 및 향후 최적화 연구 이슈 참조.
+> 본 프로젝트의 관련 구현 이슈는 [#50 PSO 관리 시스템 구축 Epic](https://github.com/jiy12345/DX12GameEngine/issues/50) 및 향후 최적화 연구 이슈 참조.
 
 ### 런타임 스터터
 
@@ -576,6 +666,35 @@ if (SUCCEEDED(debug->QueryInterface(IID_PPV_ARGS(&debug1)))) {
 - Out-of-bounds 접근
 
 **Trade-off**: 성능 저하 큼 (5~20배 느림). **Debug 빌드 + 의심 상황에서만** 사용 권장.
+
+##### 자동화 검증 테스트 툴 구성 가능
+
+GBV는 성능 저하 때문에 일상 개발에는 부적합하지만, **CI/테스트 전용 검증 툴**로 활용하면 대부분의 DX12 미묘한 버그를 자동 감지 가능:
+
+```
+구성 예시:
+┌──────────────────────────────────────────────┐
+│ 자동화 테스트 빌드 (GBV + Debug Layer 강제)  │
+├──────────────────────────────────────────────┤
+│ 1. 각 시나리오(씬/워크로드) 실행             │
+│ 2. Debug Layer 메시지 캡처                   │
+│ 3. CORRUPTION/ERROR 발생 시 테스트 실패       │
+│ 4. CI 파이프라인에서 주기적 실행             │
+└──────────────────────────────────────────────┘
+```
+
+검증 가능한 것들:
+- 배리어 누락으로 인한 상태 불일치 (PR 병합 시점에 차단)
+- Descriptor 범위 오버런
+- 리소스 수명 위반
+- 잘못된 PSO-CommandList 조합
+- Out-of-bounds 접근
+
+**Trade-off**:
+- CI 실행 시간 크게 증가 (5~20배)
+- Debug 빌드로만 실행 가능
+
+이런 툴은 **렌더러 리팩터링이나 새 기능 도입 시 안전망**으로 매우 유용. 본 프로젝트에서도 벤치마크 프레임워크([#23](https://github.com/jiy12345/DX12GameEngine/issues/23))와 별도로 **검증 테스트 툴** 도입을 고려할 수 있음.
 
 > 자세한 Debug 설정은 [DebugLayer.md](../Debugging/DebugLayer.md) 참조.
 
