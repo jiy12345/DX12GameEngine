@@ -225,7 +225,7 @@ GPU가 이전 프레임을 실행하는 동안 CPU가 다음 프레임 데이터
 프레임 N+2: CPU → Buffer[0] 재사용 (GPU가 Buffer[0] 다 읽었음)
 ```
 
-이는 [프레임 파이프라이닝](../DX12/Commands/README.md) 개념과 직결됩니다.
+이는 [프레임 파이프라이닝](../../DX12/Commands/README.md) 개념과 직결됩니다.
 
 ## DX12 구현으로의 연결
 
@@ -233,24 +233,24 @@ GPU가 이전 프레임을 실행하는 동안 CPU가 다음 프레임 데이터
 
 | 리소스 유형 | DX12 구현 가이드 |
 |-----------|---------------|
-| Constant Buffer | [UsingConstantBuffer.md](../../Usage/BasicTasks/UsingConstantBuffer.md) |
+| Constant Buffer | [UsingConstantBuffer.md](../../../Usage/BasicTasks/UsingConstantBuffer.md) |
 | Sampled Resource (SRV) | UsingTextures.md **(미작성)** |
 | UAV / Storage | UsingUAV.md **(미작성)** |
 | Sampler | UsingSamplers.md **(미작성)** |
 
 DX12 특화 바인딩 메커니즘:
-- [Root Signature](../DX12/Pipeline/RootSignature.md) **(미작성)** — 바인딩 레이아웃 선언
-- [Descriptor Heap](../DX12/Descriptors/DescriptorHeaps.md) **(미작성)** — 디스크립터 저장소
-- [Memory Heaps](../DX12/Resources/MemoryHeaps.md) — 리소스가 배치되는 메모리 유형
+- [Root Signature](../../DX12/Pipeline/RootSignature.md) **(미작성)** — 바인딩 레이아웃 선언
+- [Descriptor Heap](../../DX12/Descriptors/DescriptorHeaps.md) **(미작성)** — 디스크립터 저장소
+- [Memory Heaps](../../DX12/Resources/MemoryHeaps.md) — 리소스가 배치되는 메모리 유형
 
 ## 관련 개념
 
 ### 선행 개념
-- [Shaders](./Shaders.md) - 셰이더의 기본 개념
-- [GraphicsPipeline](./GraphicsPipeline.md) - 파이프라인 내 바인딩 시점
+- [Shaders](./README.md) - 셰이더의 기본 개념 (같은 폴더)
+- [GraphicsPipeline](../Pipeline/GraphicsPipeline.md) - 파이프라인 내 바인딩 시점
 
 ### DX12 구현
-- [Memory Heaps](../DX12/Resources/MemoryHeaps.md) - 힙 타입 선택
+- [Memory Heaps](../../DX12/Resources/MemoryHeaps.md) - 힙 타입 선택
 - Root Signature **(미작성)**
 - Descriptor Heap **(미작성)**
 

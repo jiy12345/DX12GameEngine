@@ -1,4 +1,20 @@
-# 셰이더 (Shaders)
+# 셰이더 (Shaders) — 폴더 개요
+
+이 폴더는 **셰이더 프로그래밍** 관련 개념을 다룹니다.
+
+## 📑 이 폴더의 문서
+
+| 문서 | 내용 |
+|------|------|
+| [README.md](./README.md) (이 문서) | 셰이더 기초 (종류, HLSL 기본 구조, 컴파일) |
+| [ResourceBinding.md](./ResourceBinding.md) | 셰이더 리소스 바인딩 (Constant/Texture/UAV/Sampler) |
+
+## 학습 순서
+
+1. **셰이더 기초** — 이 문서
+2. **리소스 바인딩** — [ResourceBinding.md](./ResourceBinding.md)
+
+---
 
 ## 목차
 
@@ -134,10 +150,10 @@ psoDesc.PS = { psBlob->GetBufferPointer(),     psBlob->GetBufferSize() };
 ## 관련 개념
 
 ### 선행 개념
-- [그래픽스 파이프라인](./GraphicsPipeline.md)
+- [그래픽스 파이프라인](../Pipeline/GraphicsPipeline.md)
 
 ### 연관 개념
-- [정점 처리](./VertexProcessing.md)
+- [정점 처리](../Pipeline/VertexProcessing.md)
 - [리소스 바인딩](./ResourceBinding.md)
 
 ### 후속 개념
