@@ -14,7 +14,13 @@
     - [왜 DX12는 FLIP만 지원하나?](#왜-dx12는-flip만-지원하나)
     - [FLIP_DISCARD vs FLIP_SEQUENTIAL 선택](#flip_discard-vs-flip_sequential-선택)
   - [4. 리사이즈 처리](#4-리사이즈-처리)
-  - [5. Tearing (VRR) 지원](#5-tearing-vrr-지원)
+  - [5. Tearing과 VRR 지원](#5-tearing과-vrr-지원)
+    - [Tearing이란?](#tearing이란)
+    - [왜 Tearing이 발생하는가](#왜-tearing이-발생하는가)
+    - [VSync: 전통적 해결책과 한계](#vsync-전통적-해결책과-한계)
+    - [VRR: 현대적 해결책](#vrr-현대적-해결책)
+    - [DX12의 ALLOW_TEARING 플래그](#dx12의-allow_tearing-플래그)
+    - [실무 권장: 언제 어떤 모드를 쓰나](#실무-권장-언제-어떤-모드를-쓰나)
 - [차이점 요약 표](#차이점-요약-표)
 - [SwapChain과 Command Queue의 관계](#swapchain과-command-queue의-관계)
   - [SwapChain은 Queue를 소유하지 않는다](#swapchain은-queue를-소유하지-않는다)
@@ -357,29 +363,202 @@ for (UINT i = 0; i < bufferCount; i++)
 
 DX12에서는 개발자가 리소스 수명을 명시적으로 관리하므로, 리사이즈 전에 GPU 작업 완료와 모든 참조 해제를 보장해야 합니다.
 
-### 5. Tearing (VRR) 지원
+### 5. Tearing과 VRR 지원
 
-**DX11**: 제한적 지원
+#### Tearing이란?
 
-**DX12**: DXGI 1.5+ ALLOW_TEARING 플래그
+**Tearing(화면 찢어짐)** 은 한 화면에 **서로 다른 두 프레임의 내용이 섞여 표시되는** 시각적 결함입니다.
+
+```
+모니터 한 프레임 (화면 전체):
+┌─────────────────────────┐
+│                         │
+│   프레임 N의 상반부       │  ← 이전 프레임의 그림
+│                         │
+├─────────────────────────┤  ← 여기서 "찢어짐"
+│                         │
+│   프레임 N+1의 하반부     │  ← 새 프레임의 그림
+│                         │
+└─────────────────────────┘
+```
+
+화면을 좌우로 빠르게 회전시키는 장면에서 특히 눈에 띕니다. 마치 **종이를 중간에 찢어서 두 장을 겹쳐 놓은 것처럼** 수평선이 선명하게 생기고, 위아래의 물체 위치가 어긋나 보입니다.
+
+#### 왜 Tearing이 발생하는가
+
+모니터와 GPU의 타이밍이 독립적이기 때문입니다.
+
+##### 모니터의 동작
+
+- 모니터는 **고정된 주사율**로 화면을 갱신 (예: 60Hz = 초당 60회)
+- 각 갱신 주기마다 **위에서 아래로 한 줄씩** 픽셀을 그려나감 (래스터 스캔)
+- 한 프레임 갱신에 16.6ms (60Hz 기준) 소요
+
+##### GPU의 동작
+
+- GPU는 **자기 속도로** 프레임을 완성해 백 버퍼에 저장
+- Present 호출 시 백/프론트 버퍼를 **즉시 교체**
+- 프레임마다 걸리는 시간은 가변 (10ms, 20ms 등)
+
+##### 충돌 시나리오
+
+```
+시간 →
+모니터 읽기: [━━━━━ 프레임 N을 위에서 아래로 스캔 중 ━━━━━]
+                        ↑
+                     이 시점에 GPU가 Present!
+                     백/프론트 버퍼 교체됨
+             [■■ 프레임 N ■]
+                        [▓▓ 프레임 N+1 ▓▓]
+                        ↑ 모니터는 중간부터 새 버퍼 읽음
+                        → 화면 위는 프레임 N, 아래는 프레임 N+1
+```
+
+모니터가 한 프레임을 그리는 도중에 GPU가 백 버퍼 내용을 바꿔버리면, **그 순간부터 모니터는 새 버퍼를 읽게 되어** 화면 중간에 경계선이 생깁니다.
+
+#### VSync: 전통적 해결책과 한계
+
+##### 동작 원리
+
+**VSync(Vertical Synchronization)**: Present를 모니터의 **수직 블랭크**(VBlank - 한 프레임 스캔 완료 후 다음 프레임 시작 전 쉬는 구간)까지 **대기**시킵니다.
+
+```
+시간 →
+모니터: [프레임 스캔 ────][VBlank][다음 프레임 스캔 ────]
+                          ↑
+GPU: Present 호출 → 여기서 대기 → VBlank 진입 시 버퍼 교체
+                                   → 다음 스캔은 새 버퍼 읽음
+                                   → Tearing 없음!
+```
+
+VSync ON 시 `Present(1, 0)`의 첫 인자가 SyncInterval = 1 (VBlank 1회 대기).
+
+##### VSync의 장점
+
+- **Tearing 완전 제거**
+- 프레임이 모니터 주사율과 일치 (60Hz 모니터면 60fps 캡)
+
+##### VSync의 치명적 단점
+
+**1. Input Lag 증가**
+- Present 호출 후 VBlank까지 최대 16.6ms 대기
+- 입력 → 화면 반영 지연이 최대 1~2 프레임 증가
+- 경쟁 FPS 게임에서 치명적
+
+**2. 프레임 드랍 시 급격한 FPS 하락 (Stutter)**
+- GPU가 16.6ms를 살짝 넘기면 (예: 17ms) → 다음 VBlank까지 또 대기
+- 실효 FPS가 **60 → 30으로 반토막**
+- 미세한 성능 변동에도 프레임 시간이 불규칙해짐
+
+```
+정상 VSync (16ms씩):
+[16ms][16ms][16ms][16ms]  → 60fps
+
+프레임 하나가 17ms로 지연:
+[16ms][17ms → 32ms 대기][16ms]  → FPS 급변, 체감 stutter
+```
+
+**3. 모니터 주사율의 배수로만 동작**
+- 60Hz 모니터: 60/30/20/15 fps만 가능
+- 45fps 같은 중간값은 표현 불가
+
+#### VRR: 현대적 해결책
+
+**VRR(Variable Refresh Rate)**: 모니터의 주사율을 GPU의 프레임 생성 속도에 맞춰 **실시간으로 변동**시킵니다.
+
+##### 동작 원리
+
+```
+고정 주사율 (기존):
+모니터: [16.6ms][16.6ms][16.6ms][16.6ms]  ← 항상 60Hz
+
+VRR:
+모니터: [12ms][14ms][20ms][11ms]  ← GPU 속도에 맞춰 변동
+GPU:   [12ms][14ms][20ms][11ms]  ← 프레임 완성되는 대로 Present
+       → 항상 동기화됨 → Tearing 없음 + Input Lag 없음 + Stutter 없음
+```
+
+GPU가 프레임을 완성하면 **즉시** Present하고, 모니터는 그 타이밍에 맞춰 새 스캔을 시작합니다. 고정 주사율의 모든 단점을 해결합니다.
+
+##### VRR 표준들
+
+| 표준 | 제조사 | 특징 |
+|------|-------|------|
+| **G-Sync** | NVIDIA | 전용 모듈 필요, 엄격한 품질 인증 |
+| **G-Sync Compatible** | NVIDIA | 모듈 없이 Adaptive-Sync 기반 |
+| **FreeSync** | AMD | VESA Adaptive-Sync 기반, 무료/개방 |
+| **VESA Adaptive-Sync** | 표준 | DisplayPort 1.2a+ 표준 |
+| **HDMI VRR** | HDMI Forum | HDMI 2.1+ 표준 (콘솔/TV) |
+
+모두 원리는 비슷: DisplayPort/HDMI의 adaptive refresh 프로토콜을 사용.
+
+#### DX12의 ALLOW_TEARING 플래그
+
+여기서 핵심 질문: **"VRR은 Tearing을 없애는 건데, 왜 ALLOW_TEARING 플래그가 VRR을 위해 필요한가?"**
+
+##### 이유: VRR의 기술적 요구
+
+VRR이 동작하려면 **GPU가 모니터 VBlank를 기다리지 않고 즉시 Present**해야 합니다. 그런데 DXGI는 기본적으로 안전을 위해 Present를 VBlank에 맞춰 정렬시키거나, 어떤 식으로든 **타이밍을 조정**합니다. 이 조정이 VRR을 무력화합니다.
+
+**ALLOW_TEARING 플래그의 진짜 의미**:
+> "DXGI야, Present를 **VBlank와 맞추지 말고** 호출된 그 순간 그대로 전달해라."
+
+이 플래그가 있어야 GPU → 모니터 Present가 **즉시** 일어나고, VRR 모니터가 그 타이밍에 맞춰 refresh 주기를 조정할 수 있습니다.
+
+##### 플래그 이름이 혼란스러운 이유
+
+- 플래그 이름은 "Tearing을 허용한다"지만
+- 실제 의도는 "Present 타이밍을 건드리지 마라"
+- **결과로**:
+  - VRR 지원 모니터 + VRR 동작 조건 충족 → Tearing 없이 VRR 동작
+  - VRR 미지원 / 동작 조건 불충족 → 진짜 Tearing 발생
+
+즉 "Tearing이 날 수 있다"는 플래그이지 "Tearing을 강제하는" 플래그는 아닙니다. VRR 환경에서는 실제로 Tearing이 안 납니다.
+
+##### 코드 사용
 
 ```cpp
-// Tearing 지원 확인
+// 1. Tearing 지원 여부 확인 (DXGI Factory 5+)
 BOOL allowTearing = FALSE;
 factory5->CheckFeatureSupport(
     DXGI_FEATURE_PRESENT_ALLOW_TEARING,
     &allowTearing,
     sizeof(allowTearing));
 
-// 스왑체인 생성 시 플래그 설정
-swapChainDesc.Flags = allowTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+// 2. 스왑체인 생성 시 플래그 설정
+swapChainDesc.Flags = allowTearing
+    ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING
+    : 0;
 
-// Present 시 플래그 사용 (VSync OFF일 때만)
-UINT presentFlags = (!vsync && tearingSupported) ? DXGI_PRESENT_ALLOW_TEARING : 0;
+// 3. Present 시 플래그 사용 (VSync OFF일 때만)
+UINT presentFlags = (!vsync && allowTearing)
+    ? DXGI_PRESENT_ALLOW_TEARING
+    : 0;
 swapChain->Present(vsync ? 1 : 0, presentFlags);
 ```
 
-**이유**: Microsoft 공식 문서:
+**주의**: `DXGI_PRESENT_ALLOW_TEARING`은 반드시 `SyncInterval = 0`(VSync OFF)일 때만 사용. VSync ON(`SyncInterval >= 1`)과 함께 쓰면 Present가 실패합니다.
+
+##### Windowed vs Fullscreen
+
+DXGI Flip 모델은 **Borderless Windowed(창 없는 창모드)** 를 기본 권장합니다. 하지만 기본 Windowed에서는 DWM 합성 때문에 VRR이 제한됩니다. `ALLOW_TEARING` 플래그가 있으면 **Windowed에서도 VRR/Tearing이 가능** (Windows 10 1903+).
+
+#### 실무 권장: 언제 어떤 모드를 쓰나
+
+| 사용자 환경 | 권장 설정 | `Present` 호출 |
+|------------|---------|---------------|
+| VRR 모니터 + VRR 활성 | VSync OFF + `ALLOW_TEARING` | `Present(0, DXGI_PRESENT_ALLOW_TEARING)` |
+| 일반 모니터 + 경쟁 FPS 게임 (Input Lag 민감) | VSync OFF + `ALLOW_TEARING` | `Present(0, DXGI_PRESENT_ALLOW_TEARING)` (Tearing 감수) |
+| 일반 모니터 + 일반 게임 | VSync ON | `Present(1, 0)` |
+| 싱글플레이 게임 + Stutter 기피 | VSync ON + Triple Buffering | `Present(1, 0)` |
+| 모바일 / 저전력 | VSync ON + 낮은 fps 캡 | `Present(2, 0)` (30fps 캡) |
+
+**엔진 구현 권장**:
+- Tearing 지원 플래그는 **항상 확인**하고 스왑체인 생성 시 설정
+- 런타임에 VSync ON/OFF 전환 가능하게 구성
+- 사용자 설정에서 선택 가능하게 제공 ("VSync", "VRR", "Immediate" 등)
+
+Microsoft 공식 문서:
 
 > "Variable refresh rate displays require tearing to be enabled."
 >
