@@ -79,5 +79,6 @@ Thumbs.db
 # Documentation generated files
 Docs/generated/
 
-# Claude Code personal guide
-.claude/
+# Claude Code local settings
+.claude/settings.local.json
+.claude/.idea/
