@@ -58,6 +58,14 @@ DirectX 12 기반 고성능 게임 엔진 프로젝트입니다. 최신 그래�
 → `.claude/guides/coding-style.md`
 - 현재 계층 구조, ECS 전략, 확장성/성능 원칙, 로드맵
 
+### 📚 책 / 논문 / 외부 문서 학습 정리
+→ `.claude/guides/study-workflow.md` **필수**
+→ `.claude/guides/documentation.md` (Concepts 문서 작성 시)
+→ `.claude/guides/workflow.md` (PR 단계)
+- 노션(비공개) 정리 + Concepts(공개) 추출 분리 원칙
+- 섹션 단위 7단계 절차 (본문 추출 → 노션 입력 → 질문 → 컨셉트 제안 → 초안 → PR → 머지)
+- 저작권 가드레일, 구현 아이디어 이슈 발행 패턴
+
 ---
 
 ## 🔍 빠른 참조
@@ -70,6 +78,7 @@ DirectX 12 기반 고성능 게임 엔진 프로젝트입니다. 최신 그래�
 | 기존 클래스 리팩터링 | `architecture.md` + `coding-style.md` + `workflow.md` |
 | 벤치마크 포함 PR 작성 | `optimization.md` + `workflow.md` + `documentation.md` (Analysis 문서) |
 | 개념 문서 추가 | `documentation.md` + `workflow.md` (문서 PR 프로세스) |
+| 책/외부 문서 학습 정리 | `study-workflow.md` + `documentation.md` (Concepts 추출) + `workflow.md` (PR) |
 
 ---
 
