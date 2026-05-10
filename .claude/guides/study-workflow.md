@@ -232,6 +232,7 @@
 **Chapter 페이지 구조**:
 - 제목: `Chapter X 제목` (예: `Chapter 1 Vector Algebra`)
 - 종류: `Chapter`
+- **본문 맨 위에 `<table_of_contents color="gray"/>` 자동 목차 배치** — 절·하위절이 많아지면 탐색이 편해짐
 - 본문: 책의 절(section) 단위 정리. 보강은 `<mention-page>`로 해당 보강 페이지 참조
 
 **보강 페이지 구조**:
