@@ -8,6 +8,7 @@
 
 - **[DX12/](./DX12/README.md)** — DirectX 12 API 고유 개념
 - **[Rendering/](./Rendering/README.md)** — API 독립적 그래픽스 렌더링 개념
+- **[Math/](./Math/README.md)** — 그래픽스 수학 개념 (API 독립)
 - **[Platform/](./Platform/README.md)** — 플랫폼별(OS) 시스템 개념
 
 > 개념을 **DX12에 둘지 Rendering에 둘지** 판단하려면:
@@ -67,6 +68,14 @@
 
 ### Techniques (렌더링 기법) — [📖 폴더 개요](./Rendering/Techniques/README.md)
 - [WaterSimulation.md](./Rendering/Techniques/WaterSimulation.md) - Gerstner Wave 물 시뮬레이션 ([#41](https://github.com/jiy12345/DX12GameEngine/issues/41))
+
+---
+
+## 📑 Math/ - 그래픽스 수학 개념
+
+전체 인덱스: [Math/README.md](./Math/README.md)
+
+- [RotationAndOrthonormalization.md](./Math/RotationAndOrthonormalization.md) - 회전·자세 표현(행렬/Euler/Quaternion)과 정규직교화 전략 ([#76](https://github.com/jiy12345/DX12GameEngine/issues/76))
 
 ---
 
