@@ -278,7 +278,7 @@ $$
 |------|----------|-----------|
 | 카메라 자세, forward 보존 우선 | forward | Gram–Schmidt — forward 를 첫 입력으로 |
 | Tangent space (T, B, N) 정리 | N (메시 normal) | Gram–Schmidt — N 첫 입력, $T' = T - (T \cdot N)N$ , $B = N \times T'$ |
-| FPS/3인칭 카메라 (world up 정렬) | forward 만 | 외적 방식: $\text{right} = \text{world\_up} \times \text{forward}$ , $\text{camera\_up} = \text{forward} \times \text{right}$ |
+| FPS/3인칭 카메라 (world up 정렬) | forward 만 | 외적 방식: $\text{right} = \text{worldUp} \times \text{forward}$ , $\text{cameraUp} = \text{forward} \times \text{right}$ |
 | 일반 회전 누적 (가능하면) | — | Quaternion 사용 — 직교화 자체 불필요 |
 
 ---
@@ -288,15 +288,15 @@ $$
 매 프레임 자세를 재구성하는 흔한 패턴:
 
 - 입력: forward (사용자 입력으로 변함)
-- 참조: world_up (고정 상수, 보통 $(0, 1, 0)$ )
+- 참조: worldUp (고정 상수, 보통 $(0, 1, 0)$ )
 - 계산:
 
 $$
-\text{right} = \text{normalize}(\text{world\_up} \times \text{forward})
+\text{right} = \text{normalize}(\text{worldUp} \times \text{forward})
 $$
 
 $$
-\text{camera\_up} = \text{forward} \times \text{right}
+\text{cameraUp} = \text{forward} \times \text{right}
 $$
 
 이 패턴의 효과:
@@ -327,7 +327,7 @@ $$
 World up 고정 패턴에는 본질적 특이점이 있다:
 
 $$
-\text{forward} \parallel \text{world\_up} \Rightarrow \text{world\_up} \times \text{forward} = \mathbf{0}
+\text{forward} \parallel \text{worldUp} \Rightarrow \text{worldUp} \times \text{forward} = \mathbf{0}
 $$
 
 외적 결과가 0벡터이면 정규화가 정의 불능 → right 축을 만들 수 없다.
@@ -338,7 +338,7 @@ $$
 
 표준 처리:
 - **Pitch 클램프** — 위/아래 회전 각도를 $\pm 89.9°$ 같이 제한 (전형적 FPS 처리).
-- **Epsilon 가드** — $\|\text{world\_up} \times \text{forward}\| < \varepsilon$ 일 때 이전 프레임 right를 재사용하거나 보조 참조 축으로 대체.
+- **Epsilon 가드** — $\|\text{worldUp} \times \text{forward}\| < \varepsilon$ 일 때 이전 프레임 right를 재사용하거나 보조 참조 축으로 대체.
 - 짐벌락이 본질적으로 문제인 경우 — **Quaternion** 으로 전환.
 
 **짐벌락과의 관계**: 이 특이점은 [짐벌락](#짐벌락-gimbal-lock) 과 같은 가족이다 — 둘 다 "회전 표현 방식이 강제하는 자유도 손실" 이라는 공통 본질. 다만 짐벌락은 **Euler 분해의 1번-3번 회전축 정렬** 에서 비롯되는 반면, 이 특이점은 **외적 기반 재구성에서 두 벡터가 평행해지는** 데서 비롯된다. 메커니즘은 다르지만 증상(자유도 1 손실, 보간 끊김, 입력 매핑 모호)은 유사하고, 해결책도 동일하게 Quaternion 으로의 전환이 근본 해법.
@@ -383,7 +383,7 @@ Quaternion으로 저장하면 직교 행렬이 만들어지지 않으므로 "행
 - 직교 행렬을 직접 다뤄야 하면 **재정규직교화** 가 필요. 알고리즘 선택은 **어떤 축을 보존할 것인가** 에 따라:
   - 특정 축 보존 → **Gram–Schmidt**, 그 축을 첫 입력으로.
   - 두 축의 평면만 의미 있음 → **외적 방식** (3D, 가볍지만 한 입력 무시).
-- World up 고정 패턴은 FPS·3인칭에 적합하나 roll 정보 손실과 forward // world_up 특이점이 따라온다.
+- World up 고정 패턴은 FPS·3인칭에 적합하나 roll 정보 손실과 forward // worldUp 특이점이 따라온다.
 - Quaternion이 만능은 아님 — tangent space, normal로부터의 frame 생성, 외부 자세 데이터 정리 등은 여전히 정규직교화가 필요.
 
 ---
